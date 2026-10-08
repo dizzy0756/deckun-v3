@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploads / local data
+uploads/
+*.sqlite3
+*.sqlite3-journal
+instance/
+.webassets-cache
+
+# OS
+.DS_Store
+Thumbs.db
