@@ -73,3 +73,4 @@ All decisions recorded with date and rationale. Format: **Decision → Choice (D
 
 - **WhatsApp approval lead time:** Starting this now (Step 0.3). If approval is delayed, launch without automated WhatsApp confirmation (flagged as risk in spec section 60/V2).
 - **Hosting provider cost optimization:** Revisit during Phase 6. If traffic is low, consider Render or a single VPS instead of AWS.
+- **Local database:** Docker and PostgreSQL are not available on the local machine. Using SQLite (`sqlite:///deckun.db`) for local development/testing via SQLAlchemy. For production, `DATABASE_URL` will point to managed PostgreSQL. Models use cross-database-compatible types. PostgreSQL will be required for production (Phase 6).
