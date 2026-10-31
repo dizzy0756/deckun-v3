@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deckun Admin</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <button
+        id="menu-btn"
+        class="btn btn-ghost btn-icon"
+        aria-label="Toggle menu"
+      >&#9776;</button>
+      <span class="header-title">Deckun Admin</span>
+    </div>
+    <div class="header-right">
+      <button
+        id="notifications-btn"
+        class="btn btn-ghost btn-icon"
+        aria-label="Notifications"
+      >🔔<span id="notification-badge" class="badge hidden"></span></button>
+      <button
+        id="avatar-btn"
+        class="btn btn-ghost btn-icon"
+        aria-label="User menu"
+      >⋮</button>
+    </div>
+  </header>
+
+  <nav id="sidebar" class="sidebar hidden">
+    <ul id="nav-list"></ul>
+    <button id="logout-btn" class="nav-logout">Logout</button>
+  </nav>
+
+  <main id="app" class="app-main">
+    <div class="loading">Loading…</div>
+  </main>
+
+  <div id="toast" class="toast hidden" aria-live="polite"></div>
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+  </div>
+
+  <nav class="bottom-nav">
+    <ul id="bottom-nav"></ul>
+  </nav>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

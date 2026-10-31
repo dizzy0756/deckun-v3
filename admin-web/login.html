@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deckun Admin — Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="logo.svg" alt="Deckun" width="48" height="48" />
+      <h1>Deckun Admin</h1>
+    </div>
+    <form id="login-form" autocomplete="off">
+      <div class="field">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="you@deckun.in"
+          autocomplete="username"
+          required
+        />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          required
+        />
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+        Sign In
+      </button>
+    </form>
+    <div id="error-msg" class="error-message" aria-live="polite"></div>
+  </div>
+
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>
