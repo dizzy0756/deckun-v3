@@ -7,6 +7,7 @@ Covers:
 - Idempotency: duplicate razorpay payment id / event id rejected
 """
 
+from datetime import UTC
 from uuid import uuid4
 
 import pytest
@@ -346,7 +347,7 @@ class TestArchivalIntegrity:
 
 class TestDashboardQueries:
     def test_todays_orders_query(self, db):
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         user = _create_user(db)
         addr = _create_address(db, user.id)
@@ -364,7 +365,7 @@ class TestDashboardQueries:
             )
         db.flush()
 
-        today = datetime.now(timezone.utc).replace(
+        today = datetime.now(UTC).replace(
             hour=0, minute=0, second=0, microsecond=0, tzinfo=None
         )
         count = db.scalar(

@@ -70,19 +70,47 @@ SAMPLE_PRODUCTS = [
         "meta_title": "Alpine Pro Tent - 3-Season, 2-Person",
         "meta_description": "Lightweight 3-season tent for alpine camping. Sleeps 2 adults.",
         "variants": [
-            {"sku": "ALP-PRO-TENT-2P-GRN", "name": "2-Person / Forest Green", "price": 14999, "stock": 12},
-            {"sku": "ALP-PRO-TENT-3P-GRN", "name": "3-Person / Forest Green", "price": 18999, "stock": 5},
-            {"sku": "ALP-PRO-TENT-2P-BLK", "name": "2-Person / Midnight Black", "price": 14999, "stock": 0},
+            {
+                "sku": "ALP-PRO-TENT-2P-GRN",
+                "name": "2-Person / Forest Green",
+                "price": 14999,
+                "stock": 12,
+            },
+            {
+                "sku": "ALP-PRO-TENT-3P-GRN",
+                "name": "3-Person / Forest Green",
+                "price": 18999,
+                "stock": 5,
+            },
+            {
+                "sku": "ALP-PRO-TENT-2P-BLK",
+                "name": "2-Person / Midnight Black",
+                "price": 14999,
+                "stock": 0,
+            },
         ],
         "images": [
-            {"url": "https://images.unsplash.com/photo-1", "storage_key": "placeholder-tent-1", "sort_order": 0, "alt_text": "Tent pitched on a mountain slope"},
-            {"url": "https://images.unsplash.com/photo-2", "storage_key": "placeholder-tent-2", "sort_order": 1, "alt_text": "Interior view of the tent"},
+            {
+                "url": "https://images.unsplash.com/photo-1",
+                "storage_key": "placeholder-tent-1",
+                "sort_order": 0,
+                "alt_text": "Tent pitched on a mountain slope",
+            },
+            {
+                "url": "https://images.unsplash.com/photo-2",
+                "storage_key": "placeholder-tent-2",
+                "sort_order": 1,
+                "alt_text": "Interior view of the tent",
+            },
         ],
         "specifications": [
             {"field_label": "Capacity", "field_value": "2-3 persons"},
             {"field_label": "Season", "field_value": "3-season"},
             {"field_label": "Weight", "field_value": "2.8 kg"},
-            {"field_label": "Material", "field_value": "Aluminum frame, polyester fabric"},
+            {
+                "field_label": "Material",
+                "field_value": "Aluminum frame, polyester fabric",
+            },
         ],
     },
     {
@@ -98,7 +126,12 @@ SAMPLE_PRODUCTS = [
         "meta_description": "Adjustable carbon-fiber trekking poles with anti-shock absorption.",
         "variants": [],
         "images": [
-            {"url": "https://images.unsplash.com/photo-3", "storage_key": "placeholder-poles-1", "sort_order": 0, "alt_text": "Carbon fiber trekking poles"},
+            {
+                "url": "https://images.unsplash.com/photo-3",
+                "storage_key": "placeholder-poles-1",
+                "sort_order": 0,
+                "alt_text": "Carbon fiber trekking poles",
+            },
         ],
         "specifications": [
             {"field_label": "Material", "field_value": "Carbon fiber"},
@@ -119,12 +152,20 @@ SAMPLE_PRODUCTS = [
         "meta_description": "Anodized aluminum camping table that folds for easy transport.",
         "variants": [],
         "images": [
-            {"url": "https://images.unsplash.com/photo-4", "storage_key": "placeholder-table-1", "sort_order": 0, "alt_text": "Foldable camping table"},
+            {
+                "url": "https://images.unsplash.com/photo-4",
+                "storage_key": "placeholder-table-1",
+                "sort_order": 0,
+                "alt_text": "Foldable camping table",
+            },
         ],
         "specifications": [
             {"field_label": "Dimensions", "field_value": "70 x 110 cm (unfolded)"},
             {"field_label": "Weight", "field_value": "4.2 kg"},
-            {"field_label": "Material", "field_value": "Aluminum frame, polypropylene top"},
+            {
+                "field_label": "Material",
+                "field_value": "Aluminum frame, polypropylene top",
+            },
         ],
     },
     {
@@ -143,8 +184,18 @@ SAMPLE_PRODUCTS = [
             {"sku": "BP-50L-ODG", "name": "Olive Drab", "price": 7999, "stock": 8},
         ],
         "images": [
-            {"url": "https://images.unsplash.com/photo-5", "storage_key": "placeholder-backpack-1", "sort_order": 0, "alt_text": "Weatherproof backpack"},
-            {"url": "https://images.unsplash.com/photo-6", "storage_key": "placeholder-backpack-2", "sort_order": 1, "alt_text": "Backpack compartments"},
+            {
+                "url": "https://images.unsplash.com/photo-5",
+                "storage_key": "placeholder-backpack-1",
+                "sort_order": 0,
+                "alt_text": "Weatherproof backpack",
+            },
+            {
+                "url": "https://images.unsplash.com/photo-6",
+                "storage_key": "placeholder-backpack-2",
+                "sort_order": 1,
+                "alt_text": "Backpack compartments",
+            },
         ],
         "specifications": [
             {"field_label": "Capacity", "field_value": "50 L"},
@@ -165,7 +216,12 @@ SAMPLE_PRODUCTS = [
         "meta_description": "Compact alcohol camping stove, boils 1 L in under 4 minutes.",
         "variants": [],
         "images": [
-            {"url": "https://images.unsplash.com/photo-7", "storage_key": "placeholder-stove-1", "sort_order": 0, "alt_text": "Portable camping stove"},
+            {
+                "url": "https://images.unsplash.com/photo-7",
+                "storage_key": "placeholder-stove-1",
+                "sort_order": 0,
+                "alt_text": "Portable camping stove",
+            },
         ],
         "specifications": [
             {"field_label": "Fuel", "field_value": "Denatured alcohol"},
@@ -256,31 +312,37 @@ def seed_products(db: SessionLocal, cats: dict[str, Category]) -> None:
         db.flush()
 
         for v in prod_data["variants"]:
-            db.add(ProductVariant(
-                product_id=prod.id,
-                sku=v["sku"],
-                name=v["name"],
-                price=v["price"],
-                stock=v["stock"],
-            ))
+            db.add(
+                ProductVariant(
+                    product_id=prod.id,
+                    sku=v["sku"],
+                    name=v["name"],
+                    price=v["price"],
+                    stock=v["stock"],
+                )
+            )
             db.flush()
 
         for img in prod_data["images"]:
-            db.add(ProductImage(
-                product_id=prod.id,
-                url=img["url"],
-                storage_key=img["storage_key"],
-                sort_order=img["sort_order"],
-                alt_text=img["alt_text"],
-            ))
+            db.add(
+                ProductImage(
+                    product_id=prod.id,
+                    url=img["url"],
+                    storage_key=img["storage_key"],
+                    sort_order=img["sort_order"],
+                    alt_text=img["alt_text"],
+                )
+            )
             db.flush()
 
         for spec in prod_data["specifications"]:
-            db.add(ProductSpecification(
-                product_id=prod.id,
-                field_label=spec["field_label"],
-                field_value=spec["field_value"],
-            ))
+            db.add(
+                ProductSpecification(
+                    product_id=prod.id,
+                    field_label=spec["field_label"],
+                    field_value=spec["field_value"],
+                )
+            )
             db.flush()
 
 
@@ -296,10 +358,16 @@ def main() -> None:
         db.commit()
         print("Seed complete:")
         print(f"  Categories: {len(db.execute(select(Category)).scalars().all())} rows")
-        print(f"  Admins:     {len(db.execute(select(AdminUser)).scalars().all())} rows")
+        print(
+            f"  Admins:     {len(db.execute(select(AdminUser)).scalars().all())} rows"
+        )
         print(f"  Products:   {len(db.execute(select(Product)).scalars().all())} rows")
-        print(f"  Variants:   {len(db.execute(select(ProductVariant)).scalars().all())} rows")
-        print(f"  PIN codes:  {len(db.execute(select(ServiceablePincode)).scalars().all())} rows")
+        print(
+            f"  Variants:   {len(db.execute(select(ProductVariant)).scalars().all())} rows"
+        )
+        print(
+            f"  PIN codes:  {len(db.execute(select(ServiceablePincode)).scalars().all())} rows"
+        )
         print(f"  Settings:   {len(db.execute(select(Setting)).scalars().all())} rows")
     except Exception:
         db.rollback()

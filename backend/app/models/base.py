@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4  # noqa: F401
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, text  # noqa: F401
@@ -11,4 +11,4 @@ class Base(DeclarativeBase):
 
 def utcnow() -> datetime:
     """Naive UTC datetime (compatible with SQLite DATETIME and PostgreSQL TIMESTAMP)."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
