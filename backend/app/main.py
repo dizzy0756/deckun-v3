@@ -16,7 +16,7 @@ app = FastAPI(title="Deckun Backend", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,3 +36,8 @@ app.include_router(admin_router)
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/")
+def root() -> dict[str, str]:
+    return {"message": "Deckun API"}
