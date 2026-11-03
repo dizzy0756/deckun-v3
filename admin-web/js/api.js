@@ -8,7 +8,7 @@
 
 const API_BASE = (() => {
   const meta = document.querySelector('meta[name="api-base"]');
-  return meta ? meta.content : "/api";
+  return meta ? meta.content : "http://127.0.0.1:65433/api";
 })();
 
 export const api = {

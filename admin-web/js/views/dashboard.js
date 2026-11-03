@@ -1,7 +1,3 @@
-/**
- * views/dashboard.js — dashboard summary + recent orders.
- */
-
 import { api } from "../api.js";
 
 const STATUS_LABELS = {
@@ -13,19 +9,41 @@ const STATUS_LABELS = {
   cancelled: "Cancelled",
 };
 
+const rupee = (paise) => {
+  if (paise == null) return "₹0.00";
+  return "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export async function render() {
   const app = document.getElementById("app");
   app.innerHTML = `
-    <section class="dashboard-summary">
-      <h2 class="card-header">Today</h2>
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">Loading…</div>
+    <section class="section">
+      <div class="section-header">
+        <h2>Dashboard</h2>
+        <p>Today's overview</p>
       </div>
-    </section>
-    <section class="recent-orders">
-      <div class="recent-header">
-        <h2 class="card-header">Recent Orders</h2>
-        <a href="#orders" class="link-btn">View all</a>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="label">Today's Orders</span>
+          <span class="value" id="stat-orders">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Pending</span>
+          <span class="value" id="stat-pending">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Revenue Today</span>
+          <span class="value" id="stat-revenue">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="label">Low Stock</span>
+          <span class="value" id="stat-lowstock">-</span>
+        </div>
+      </div>
+
+      <div class="section-header" style="margin-top:2rem;">
+        <h2>Recent Orders</h2>
       </div>
       <ul class="list" id="recent-orders-list">
         <li>Loading…</li>
@@ -36,27 +54,10 @@ export async function render() {
   try {
     const data = await api.get("/api/admin/dashboard/");
 
-    const rupee = (paise) =>
-      "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    document.getElementById("stats-grid").innerHTML = `
-      <div class="stat-card">
-        <span class="stat-value">${data.today_orders || 0}</span>
-        <span class="stat-label">Today's Orders</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">${data.pending_orders || 0}</span>
-        <span class="stat-label">Pending</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">${rupee(data.revenue_today || 0)}</span>
-        <span class="stat-label">Revenue Today</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value">${data.low_stock_count || 0}</span>
-        <span class="stat-label">Low Stock</span>
-      </div>
-    `;
+    document.getElementById("stat-orders").textContent = data.today_orders || 0;
+    document.getElementById("stat-pending").textContent = data.pending_orders || 0;
+    document.getElementById("stat-revenue").textContent = rupee(data.revenue_today || 0);
+    document.getElementById("stat-lowstock").textContent = data.low_stock_count || 0;
 
     const list = document.getElementById("recent-orders-list");
     if (!data.recent_orders || data.recent_orders.length === 0) {
@@ -69,11 +70,6 @@ export async function render() {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const rupee = (paise) =>
-          "₹" + (paise / 100).toLocaleString("en-IN", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          });
         return `
           <li>
             <a href="#orders/${order.order_number}" class="order-link">

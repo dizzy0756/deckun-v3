@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
@@ -31,6 +32,11 @@ app.include_router(content_router)
 app.include_router(pincodes_router)
 app.include_router(notifications_router)
 app.include_router(admin_router)
+
+# Serve product images
+import os
+os.makedirs("public/images/products", exist_ok=True)
+app.mount("/images", StaticFiles(directory="public/images"), name="images")
 
 
 @app.get("/health")

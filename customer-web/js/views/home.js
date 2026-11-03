@@ -1,4 +1,4 @@
-﻿import { api } from '../api.js';
+import { api } from '../api.js';
 
 export async function renderHome(app) {
   if (!app) return;
@@ -39,7 +39,7 @@ export async function renderHome(app) {
     const grid = document.getElementById('featured-grid');
     if (products && products.length) {
       grid.innerHTML = products.slice(0, 4).map(p => `
-        <a href="#products/${escapeHtml(p.slug || '')}" class="product-card">
+        <a href="#products/${escapeHtml(p.slug || '')}" target="_blank" rel="noopener noreferrer" class="product-card">
           <img src="${escapeHtml(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop')}" alt="${escapeHtml(p.name)}" class="product-image" loading="lazy" />
           <div class="product-info">
             <div class="product-name">${escapeHtml(p.name)}</div>
@@ -48,10 +48,10 @@ export async function renderHome(app) {
         </a>
       `).join('');
     } else {
-      grid.innerHTML = '<div style=\"grid-column:1/-1;text-align:center;color:var(--color-text-muted);\">No products available</div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--color-text-muted);">No products available</div>';
     }
   } catch (e) {
-    document.getElementById('featured-grid').innerHTML = '<div style=\"grid-column:1/-1;text-align:center;color:var(--color-text-muted);\">Unable to load products</div>';
+    document.getElementById('featured-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--color-text-muted);">Unable to load products</div>';
   }
 }
 

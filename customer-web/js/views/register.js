@@ -1,5 +1,5 @@
 ﻿export async function renderRegister(app) {
-  app.innerHTML = 
+  app.innerHTML = `
     <section class="section">
       <div class="container" style="max-width:400px;">
         <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.5rem; text-align:center;">Create Account</h1>
@@ -22,7 +22,7 @@
         <p style="text-align:center; margin-top:1.5rem; color:var(--color-text-muted);">Already have an account? <a href="#login" style="color:var(--color-primary);">Login</a></p>
       </div>
     </section>
-  ;
+  `;
 
   document.getElementById('register-form').onsubmit = async (e) => {
     e.preventDefault();

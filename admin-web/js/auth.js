@@ -23,6 +23,8 @@ export function logout() {
   window.location.href = "login.html";
 }
 
+import { api } from "./api.js";
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("login-form");
   if (!form) return;
@@ -38,18 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = "Signing in…";
 
     try {
-      const resp = await fetch("/api/auth/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json();
-        throw new Error(err.detail || "Invalid credentials");
-      }
-
-      const data = await resp.json();
+      const data = await api.post("/api/auth/admin/login", { email, password });
       setToken(data.access_token);
       window.location.href = "index.html";
     } catch (err) {
@@ -60,8 +51,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-const logoutBtn = document.getElementById("logout-btn");
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", logout);
-}

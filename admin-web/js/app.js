@@ -70,13 +70,21 @@ function setActiveNav(hash) {
 
 function getRoute() {
   const hash = window.location.hash || "#dashboard";
-  const [name, id] = hash.slice(1).split("/");
-  return { name, id, hash };
+  const parts = hash.slice(1).split("/");
+  return { name: parts[0] || "dashboard", id: parts[1], subId: parts[2], hash };
 }
 
 async function render() {
-  const { name, id } = getRoute();
+  const { name, id, subId } = getRoute();
   const app = document.getElementById("app");
+
+  // Handle edit product route: #products/edit/<id> or #products/edit/new
+  if (name === "products" && id === "edit") {
+    const mod = await import("./views/edit-product.js");
+    await mod.render({ id: subId === "new" ? null : subId, params: getUrlParams() });
+    return;
+  }
+
   const loader = VIEWS[name];
   if (!loader) {
     app.innerHTML = "<p>Page not found.</p>";

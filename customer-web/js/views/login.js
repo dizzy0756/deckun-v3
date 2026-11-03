@@ -1,5 +1,5 @@
 ﻿export async function renderLogin(app) {
-  app.innerHTML = 
+app.innerHTML = `
     <section class="section">
       <div class="container" style="max-width:400px;">
         <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.5rem; text-align:center;">Login</h1>
@@ -18,7 +18,7 @@
         <p style="text-align:center; margin-top:1.5rem; color:var(--color-text-muted);">Don't have an account? <a href="#register" style="color:var(--color-primary);">Register</a></p>
       </div>
     </section>
-  ;
+  `;
 
   document.getElementById('login-form').onsubmit = async (e) => {
     e.preventDefault();

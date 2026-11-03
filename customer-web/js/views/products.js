@@ -20,7 +20,7 @@ export async function renderProducts(app) {
     const grid = document.getElementById('products-grid');
     if (products && products.length) {
       grid.innerHTML = products.map(p => `
-        <a href="#products/${escapeHtml(p.slug || '')}" class="product-card">
+        <a href="#products/${escapeHtml(p.slug || '')}" target="_blank" rel="noopener noreferrer" class="product-card">
           <img src="${escapeHtml(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop')}" alt="${escapeHtml(p.name)}" class="product-image" loading="lazy" />
           <div class="product-info">
             <div class="product-name">${escapeHtml(p.name)}</div>
@@ -29,10 +29,10 @@ export async function renderProducts(app) {
         </a>
       `).join('');
     } else {
-      grid.innerHTML = '<div style=\"grid-column:1/-1;text-align:center;color:var(--color-text-muted);\">No products found</div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--color-text-muted);">No products found</div>';
     }
   } catch (e) {
-    document.getElementById('products-grid').innerHTML = '<div style=\"grid-column:1/-1;text-align:center;color:var(--color-text-muted);\">Unable to load products</div>';
+    document.getElementById('products-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--color-text-muted);">Unable to load products</div>';
   }
 }
 

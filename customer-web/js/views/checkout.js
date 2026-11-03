@@ -1,4 +1,4 @@
-﻿import { api } from '../api.js';
+import { api } from '../api.js';
 
 export function renderCheckout(app) {
   const cart = JSON.parse(localStorage.getItem('deckun_cart') || '[]');
@@ -9,7 +9,7 @@ export function renderCheckout(app) {
     return;
   }
   
-  app.innerHTML = 
+app.innerHTML = `
     <section class="section">
       <div class="container" style="max-width:600px;">
         <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:1.5rem;">Checkout</h1>
@@ -42,7 +42,7 @@ export function renderCheckout(app) {
         </form>
       </div>
     </section>
-  ;
+  `;
 
   document.getElementById('checkout-form').onsubmit = async (e) => {
     e.preventDefault();

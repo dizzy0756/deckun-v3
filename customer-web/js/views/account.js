@@ -1,5 +1,5 @@
 ﻿export async function renderAccount(app) {
-  app.innerHTML = 
+  app.innerHTML = `
     <section class="section">
       <div class="container" style="max-width:600px;">
         <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:1.5rem;">My Account</h1>
@@ -9,5 +9,5 @@
         </div>
       </div>
     </section>
-  ;
+  `;
 }

@@ -1,6 +1,8 @@
 from uuid import UUID
-
-from fastapi import APIRouter, Depends, HTTPException
+import os
+import uuid as uuid_lib
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -204,6 +206,8 @@ def create_product(
         )
     db.flush()
 
+    db.commit()
+    db.refresh(product)
     return _to_product_read(db, product)
 
 
@@ -247,7 +251,8 @@ def update_product(
 
     for field, value in update_data.items():
         setattr(product, field, value)
-    db.flush()
+    db.commit()
+    db.refresh(product)
     return _to_product_read(db, product)
 
 
@@ -262,21 +267,52 @@ def archive_product(product_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/{product_id}/images", response_model=ProductImageRead)
-def upload_image(
+async def upload_image(
     product_id: UUID,
-    payload: ImageCreate,
+    file: UploadFile = File(...),
+    alt_text: str | None = None,
+    is_active: bool = True,
     db: Session = Depends(get_db),
 ):
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    # Generate unique filename
+    ext = os.path.splitext(file.filename or "image")[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+        raise HTTPException(status_code=400, detail="Unsupported image format")
+
+    unique_name = f"{uuid_lib.uuid4().hex}{ext}"
+    file_path = Path("public/images/products") / unique_name
+
+    # Save file to disk
+    contents = await file.read()
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    # Build public URL
+    image_url = f"/images/products/{unique_name}"
+
+    # Determine sort_order (next available)
+    max_sort = db.scalar(
+        select(ProductImage.sort_order)
+        .where(ProductImage.product_id == product_id)
+        .order_by(ProductImage.sort_order.desc())
+        .limit(1)
+    ) or 0
+
     img = ProductImage(
         product_id=product_id,
-        url=payload.url,
-        storage_key=payload.storage_key,
-        sort_order=payload.sort_order,
-        alt_text=payload.alt_text,
-        is_active=payload.is_active,
+        url=image_url,
+        storage_key=unique_name,
+        sort_order=max_sort + 1,
+        alt_text=alt_text or file.filename or "Product image",
+        is_active=is_active,
     )
     db.add(img)
     db.flush()

@@ -14,6 +14,50 @@ import { renderContact } from './views/contact.js';
 const cartBadge = document.getElementById('cart-badge');
 const mobileNavLinks = document.querySelectorAll('.mobile-nav a');
 
+// Save default meta tags on page load
+const DEFAULT_META = {
+  title: document.title,
+  description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',
+  ogTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || '',
+  ogDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || '',
+  ogType: document.querySelector('meta[property="og:type"]')?.getAttribute('content') || '',
+  ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute('content') || '',
+  ogImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || '',
+  twitterCard: document.querySelector('meta[name="twitter:card"]')?.getAttribute('content') || '',
+  twitterTitle: document.querySelector('meta[name="twitter:title"]')?.getAttribute('content') || '',
+  twitterDescription: document.querySelector('meta[name="twitter:description"]')?.getAttribute('content') || '',
+  twitterImage: document.querySelector('meta[name="twitter:image"]')?.getAttribute('content') || '',
+};
+
+// Restore default meta tags
+function restoreDefaultMeta() {
+  document.title = DEFAULT_META.title;
+  setMeta('description', DEFAULT_META.description, 'name');
+  setMeta('og:title', DEFAULT_META.ogTitle, 'property');
+  setMeta('og:description', DEFAULT_META.ogDescription, 'property');
+  setMeta('og:type', DEFAULT_META.ogType, 'property');
+  setMeta('og:url', DEFAULT_META.ogUrl, 'property');
+  setMeta('og:image', DEFAULT_META.ogImage, 'property');
+  setMeta('twitter:card', DEFAULT_META.twitterCard, 'name');
+  setMeta('twitter:title', DEFAULT_META.twitterTitle, 'name');
+  setMeta('twitter:description', DEFAULT_META.twitterDescription, 'name');
+  setMeta('twitter:image', DEFAULT_META.twitterImage, 'name');
+
+  // Remove product JSON-LD
+  const existing = document.querySelector('script[type="application/ld+json"][data-product]');
+  if (existing) existing.remove();
+}
+
+function setMeta(name, value, attr = 'name') {
+  let el = document.querySelector(`meta[${attr}="${name}"]`);
+  if (!el) {
+    el = document.createElement('meta');
+    el.setAttribute(attr, name);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('content', value);
+}
+
 function updateCartBadge() {
   try {
     if (!cartBadge) return;
@@ -57,33 +101,45 @@ async function router() {
   
   try {
     if (hash.startsWith('#home') || hash === '#' || hash === '') {
+      restoreDefaultMeta();
       await renderHome(appEl);
-    } else if (hash.startsWith('#products/') && hash.split('/').length > 2) {
+    } else if (hash.startsWith('#products/') && hash.split('/').length > 1) {
       const parts = hash.split('/');
-      const slug = parts[2];
+      const slug = parts[1];
       await renderProductDetail(appEl, slug);
     } else if (hash.startsWith('#products')) {
+      restoreDefaultMeta();
       await renderProducts(appEl);
     } else if (hash.startsWith('#cart')) {
+      restoreDefaultMeta();
       await renderCart(appEl);
     } else if (hash.startsWith('#checkout')) {
+      restoreDefaultMeta();
       await renderCheckout(appEl);
     } else if (hash.startsWith('#login')) {
+      restoreDefaultMeta();
       await renderLogin(appEl);
     } else if (hash.startsWith('#register')) {
+      restoreDefaultMeta();
       await renderRegister(appEl);
     } else if (hash.startsWith('#account')) {
+      restoreDefaultMeta();
       await renderAccount(appEl);
-    } else if (hash.startsWith('#orders/') && hash.split('/').length > 2) {
-      const id = hash.split('/')[2];
+    } else if (hash.startsWith('#orders/') && hash.split('/').length > 1) {
+      restoreDefaultMeta();
+      const id = hash.split('/')[1];
       await renderOrderDetail(appEl, id);
     } else if (hash.startsWith('#orders')) {
+      restoreDefaultMeta();
       await renderOrders(appEl);
     } else if (hash.startsWith('#about')) {
+      restoreDefaultMeta();
       await renderAbout(appEl);
     } else if (hash.startsWith('#contact')) {
+      restoreDefaultMeta();
       await renderContact(appEl);
     } else {
+      restoreDefaultMeta();
       await renderHome(appEl);
     }
   } catch (e) {
@@ -131,9 +187,9 @@ function run() {
         try {
           if (hash.startsWith('#home') || hash === '#' || hash === '') {
             await renderHome(appEl);
-          } else if (hash.startsWith('#products/') && hash.split('/').length > 2) {
+          } else if (hash.startsWith('#products/') && hash.split('/').length > 1) {
             const parts = hash.split('/');
-            const slug = parts[2];
+            const slug = parts[1];
             await renderProductDetail(appEl, slug);
           } else if (hash.startsWith('#products')) {
             await renderProducts(appEl);
@@ -147,8 +203,8 @@ function run() {
             await renderRegister(appEl);
           } else if (hash.startsWith('#account')) {
             await renderAccount(appEl);
-          } else if (hash.startsWith('#orders/') && hash.split('/').length > 2) {
-            const id = hash.split('/')[2];
+          } else if (hash.startsWith('#orders/') && hash.split('/').length > 1) {
+            const id = hash.split('/')[1];
             await renderOrderDetail(appEl, id);
           } else if (hash.startsWith('#orders')) {
             await renderOrders(appEl);
@@ -171,7 +227,6 @@ function run() {
     console.error('Run error:', e);
   }
 }
-function router() { run(); }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', run);
 } else {
@@ -183,6 +238,4 @@ try {
     window.addEventListener('cart-updated', updateCartBadge);
   }
 } catch (e) {}
-export { run, router, init };
-export { run, router, init };
-export { run, router, init };
+export { run, router, init }
