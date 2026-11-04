@@ -241,10 +241,10 @@ class CatalogueService:
             effective_price = breakdown.total_price
             discount_amount = breakdown.discount_amount
 
-        # Resolve primary_image_url
-        primary_image_url = product.primary_image_url
-        if primary_image_url and primary_image_url.startswith('/') and base_url:
-            primary_image_url = base_url.rstrip('/') + primary_image_url
+        # Resolve primary_image_url from images list
+        primary_image_url = None
+        if resolved_images:
+            primary_image_url = resolved_images[0].url
 
         return ProductDetailRead(
             id=product.id,
