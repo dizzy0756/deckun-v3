@@ -148,9 +148,9 @@ function renderEditForm(app, product, isNew, productId) {
 
       // Show preview immediately
       const reader = new FileReader();
+      const previewDiv = document.createElement("div");
+      previewDiv.style.cssText = "position:relative; width:100px; height:100px;";
       reader.onload = (ev) => {
-        const previewDiv = document.createElement("div");
-        previewDiv.style.cssText = "position:relative; width:100px; height:100px;";
         previewDiv.innerHTML = `
           <img src="${ev.target.result}" alt="Uploading..." style="width:100%; height:100%; object-fit:cover; border-radius:var(--radius); opacity:0.7;" />
           <div style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.5); color:white; border-radius:50%; width:20px; height:20px; font-size:10px; display:flex; align-items:center; justify-content:center;">↻</div>

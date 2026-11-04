@@ -315,7 +315,8 @@ async def upload_image(
         is_active=is_active,
     )
     db.add(img)
-    db.flush()
+    db.commit()
+    db.refresh(img)
     return ProductImageRead.model_validate(img)
 
 

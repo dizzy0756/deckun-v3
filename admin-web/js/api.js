@@ -31,7 +31,8 @@ export const api = {
     }
 
     if (body instanceof FormData) {
-      Object.assign(opts.headers, Object.fromEntries(body.headers));
+      // FormData sets Content-Type automatically with boundary
+      opts.body = body;
     } else if (body !== null) {
       opts.headers["Content-Type"] = "application/json";
       opts.body = JSON.stringify(body);
