@@ -131,11 +131,12 @@ export async function renderProductDetail(app, slug) {
 
     // Gallery swipe/tap logic
     let currentIndex = 0;
-    const mainImg = document.getElementById('gallery-main-img');
-    const prevBtn = document.getElementById('gallery-prev');
-    const nextBtn = document.getElementById('gallery-next');
-    const dots = document.querySelectorAll('.gallery-dot');
-    const thumbs = document.querySelectorAll('.gallery-thumb');
+    const appEl = app;
+    const mainImg = appEl.querySelector('#gallery-main-img');
+    const prevBtn = appEl.querySelector('#gallery-prev');
+    const nextBtn = appEl.querySelector('#gallery-next');
+    const dots = appEl.querySelectorAll('.gallery-dot');
+    const thumbs = appEl.querySelectorAll('.gallery-thumb');
 
     function updateGallery(index) {
       currentIndex = ((index % galleryImages.length) + galleryImages.length) % galleryImages.length;
@@ -160,18 +161,22 @@ export async function renderProductDetail(app, slug) {
       if (endX - startX > 50) updateGallery(currentIndex - 1);
     });
 
-    document.getElementById('add-cart').onclick = () => {
-      const cart = JSON.parse(localStorage.getItem('deckun_cart') || '[]');
-      const existing = cart.find(item => item.product_id === product.id && !item.variant_id);
-      if (existing) {
-        existing.quantity += 1;
-      } else {
-        cart.push({ product_id: product.id, slug: product.slug, name: product.name, price: product.price || product.base_price, image: product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : ''), quantity: 1 });
-      }
-      localStorage.setItem('deckun_cart', JSON.stringify(cart));
-      document.dispatchEvent(new Event('cart-updated'));
-      alert('Added to cart');
-    };
+    // Add to cart
+    const addCartBtn = app.querySelector('#add-cart');
+    if (addCartBtn) {
+      addCartBtn.onclick = () => {
+        const cart = JSON.parse(localStorage.getItem('deckun_cart') || '[]');
+        const existing = cart.find(item => item.product_id === product.id && !item.variant_id);
+        if (existing) {
+          existing.quantity += 1;
+        } else {
+          cart.push({ product_id: product.id, slug: product.slug, name: product.name, price: product.price || product.base_price, image: product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : ''), quantity: 1 });
+        }
+        localStorage.setItem('deckun_cart', JSON.stringify(cart));
+        document.dispatchEvent(new Event('cart-updated'));
+        alert('Added to cart');
+      };
+    }
   } catch (e) {
     console.error('Render product error:', e);
     app.innerHTML = `<div style="padding:2rem;text-align:center;"><h2>Product not found</h2><p style="color:var(--color-text-muted);">${e.message || 'Product could not be loaded'}</p><a href="#products" style="color:var(--color-primary);">Back to products</a></div>`;
