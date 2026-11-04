@@ -2,7 +2,7 @@ from uuid import UUID
 import os
 import uuid as uuid_lib
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -268,6 +268,7 @@ def archive_product(product_id: UUID, db: Session = Depends(get_db)):
 
 @router.post("/{product_id}/images", response_model=ProductImageRead)
 async def upload_image(
+    request: Request,
     product_id: UUID,
     file: UploadFile = File(...),
     alt_text: str | None = None,
@@ -295,8 +296,9 @@ async def upload_image(
     with open(file_path, "wb") as f:
         f.write(contents)
 
-    # Build public URL
-    image_url = f"/images/products/{unique_name}"
+    # Build public URL with full backend host
+    base_url = str(request.base_url).rstrip("/")
+    image_url = f"{base_url}/images/products/{unique_name}"
 
     # Determine sort_order (next available)
     max_sort = db.scalar(

@@ -1,4 +1,4 @@
-﻿import { api } from '../api.js';
+﻿import { api, resolveUrl } from '../api.js';
 
 const rupee = (paise) => {
   if (paise == null) return "₹0.00";
@@ -40,7 +40,7 @@ export async function renderProductDetail(app, slug) {
     setMeta('og:description', product.meta_description || product.name, 'property');
     setMeta('og:type', 'product', 'property');
     setMeta('og:url', window.location.href, 'property');
-    const mainImage = product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=630&fit=crop');
+    const mainImage = resolveUrl(product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=630&fit=crop'));
     setMeta('og:image', mainImage, 'property');
     setMeta('og:image:width', '1200', 'property');
     setMeta('og:image:height', '630', 'property');
@@ -69,10 +69,10 @@ export async function renderProductDetail(app, slug) {
     // Build image gallery (up to 3 images)
     const images = [];
     if (product.images && product.images.length) {
-      images.push(...product.images.map(img => img.url));
+      images.push(...product.images.map(img => resolveUrl(img.url)));
     }
     if (product.primary_image_url && !images.includes(product.primary_image_url)) {
-      images.unshift(product.primary_image_url);
+      images.unshift(resolveUrl(product.primary_image_url));
     }
     // Fallback placeholder
     if (images.length === 0) {

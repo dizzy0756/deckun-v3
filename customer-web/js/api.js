@@ -36,3 +36,11 @@ export const api = new API();
 export function setToken(t) { localStorage.setItem('customer_token', t); api.token = t; }
 export function clearToken() { localStorage.removeItem('customer_token'); api.token = null; }
 export function getToken() { return localStorage.getItem('customer_token'); }
+
+// Resolve relative image URLs to full backend URLs
+export function resolveUrl(url) {
+  if (url && url.startsWith('/')) {
+    return API_BASE.replace('/api', '') + url;
+  }
+  return url;
+}
