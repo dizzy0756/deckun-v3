@@ -1,8 +1,8 @@
 ﻿import { api, resolveUrl } from '../api.js';
 
-const rupee = (paise) => {
-  if (paise == null) return "₹0.00";
-  return "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const rupee = (price) => {
+  if (price == null) return "₹0.00";
+  return "₹" + price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // Helper: set or create a meta tag
@@ -65,7 +65,7 @@ export async function renderProductDetail(app, slug) {
       "image": mainImage,
       "offers": {
         "@type": "Offer",
-        "price": String((product.base_price || product.price || 0) / 100),
+        "price": String((product.base_price || product.price || 0)),
         "priceCurrency": "INR",
         "availability": product.stock_quantity > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
       },
