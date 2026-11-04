@@ -81,7 +81,7 @@ async function render() {
   // Handle edit product route: #products/edit/<id> or #products/edit/new
   if (name === "products" && id === "edit") {
     const mod = await import("./views/edit-product.js");
-    await mod.render({ id: subId === "new" ? null : subId, params: getUrlParams() });
+    await mod.render({ id: subId, params: getUrlParams() });
     return;
   }
 
