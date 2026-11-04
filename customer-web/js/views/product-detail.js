@@ -31,7 +31,13 @@ export async function renderProductDetail(app, slug) {
   app.innerHTML = '<div style="padding:2rem;text-align:center;">Loading...</div>';
 
   try {
+    console.log('Fetching product:', slug); // Debug
     const product = await api.get('/catalogue/products/' + encodeURIComponent(slug));
+    console.log('Product data:', product); // Debug
+
+    if (!product || !product.name) {
+      throw new Error('Product not found');
+    }
 
     // --- Set dynamic meta tags ---
     document.title = product.meta_title || product.name;
@@ -167,7 +173,8 @@ export async function renderProductDetail(app, slug) {
       alert('Added to cart');
     };
   } catch (e) {
-    app.innerHTML = '<div style="padding:2rem;text-align:center;"><h2>Product not found</h2><a href="#products" style="color:var(--color-primary);">Back to products</a></div>';
+    console.error('Render product error:', e);
+    app.innerHTML = `<div style="padding:2rem;text-align:center;"><h2>Product not found</h2><p style="color:var(--color-text-muted);">${e.message || 'Product could not be loaded'}</p><a href="#products" style="color:var(--color-primary);">Back to products</a></div>`;
   }
 }
 
