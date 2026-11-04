@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -16,6 +16,7 @@ def list_categories(db: Session = Depends(get_db)):
 
 @router.get("/products", response_model=list[ProductRead])
 def list_products(
+    request: Request,
     category: str | None = Query(default=None),
     featured: bool | None = Query(default=None),
     skip: int = Query(default=0, ge=0),
@@ -28,10 +29,11 @@ def list_products(
         featured_only=featured or False,
         skip=skip,
         limit=limit,
+        base_url=str(request.base_url).rstrip('/'),
     )
 
 
 @router.get("/products/{slug}", response_model=ProductDetailRead)
-def get_product(slug: str, db: Session = Depends(get_db)):
+def get_product(request: Request, slug: str, db: Session = Depends(get_db)):
     service = CatalogueService(db)
-    return service.get_product_by_slug(slug)
+    return service.get_product_by_slug(slug, str(request.base_url).rstrip('/'))

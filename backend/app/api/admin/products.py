@@ -82,8 +82,8 @@ class ProductUpdate(BaseModel):
     specifications: list[SpecCreate] | None = None
 
 
-def _primary_image_url(db: Session, product_id: UUID) -> str | None:
-    return db.scalar(
+def _primary_image_url(db: Session, product_id: UUID, request_base_url: str | None = None) -> str | None:
+    url = db.scalar(
         select(ProductImage.url)
         .where(
             ProductImage.product_id == product_id,
@@ -92,9 +92,12 @@ def _primary_image_url(db: Session, product_id: UUID) -> str | None:
         .order_by(ProductImage.sort_order)
         .limit(1)
     )
+    if url and url.startswith('/'):
+        return request_base_url + url
+    return url
 
 
-def _to_product_read(db: Session, product: Product) -> ProductRead:
+def _to_product_read(db: Session, product: Product, request_base_url: str | None = None) -> ProductRead:
     category = db.get(Category, product.category_id)
     variants = db.scalars(
         select(ProductVariant).where(
@@ -114,7 +117,7 @@ def _to_product_read(db: Session, product: Product) -> ProductRead:
         is_featured=product.is_featured,
         category_id=product.category_id,
         category_name=category.name if category else "Unknown",
-        primary_image_url=_primary_image_url(db, product.id),
+        primary_image_url=_primary_image_url(db, product.id, request_base_url),
         availability=availability,
         has_variants=product.has_variants,
     )
@@ -122,6 +125,7 @@ def _to_product_read(db: Session, product: Product) -> ProductRead:
 
 @router.get("/", response_model=list[ProductRead])
 def list_products(
+    request: Request,
     status: ProductStatus | None = None,
     skip: int = 0,
     limit: int = 50,
@@ -136,7 +140,7 @@ def list_products(
         stmt = stmt.where(Product.status == status)
     stmt = stmt.offset(skip).limit(limit)
     results = db.execute(stmt).all()
-    return [_to_product_read(db, p) for p, _ in results]
+    return [_to_product_read(db, p, str(request.base_url).rstrip('/')) for p, _ in results]
 
 
 @router.post("/", response_model=ProductRead)
@@ -212,11 +216,11 @@ def create_product(
 
 
 @router.get("/{product_id}", response_model=ProductDetailRead)
-def get_product(product_id: UUID, db: Session = Depends(get_db)):
+def get_product(request: Request, product_id: UUID, db: Session = Depends(get_db)):
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return CatalogueService(db).get_product_by_slug(product.slug)
+    return CatalogueService(db).get_product_by_slug(product.slug, str(request.base_url).rstrip('/'))
 
 
 @router.patch("/{product_id}", response_model=ProductRead)

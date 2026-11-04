@@ -1,4 +1,4 @@
-﻿import { api } from '../api.js';
+﻿import { api, resolveUrl } from '../api.js';
 
 export async function renderProducts(app) {
   app.innerHTML = `
@@ -21,7 +21,7 @@ export async function renderProducts(app) {
     if (products && products.length) {
       grid.innerHTML = products.map(p => `
         <a href="#products/${escapeHtml(p.slug || '')}" target="_blank" rel="noopener noreferrer" class="product-card">
-          <img src="${escapeHtml(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop')}" alt="${escapeHtml(p.name)}" class="product-image" loading="lazy" />
+          <img src="${escapeHtml(resolveUrl(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop'))}" alt="${escapeHtml(p.name)}" class="product-image" loading="lazy" />
           <div class="product-info">
             <div class="product-name">${escapeHtml(p.name)}</div>
             <div class="product-price">₹${p.base_price != null ? p.base_price : 0}</div>

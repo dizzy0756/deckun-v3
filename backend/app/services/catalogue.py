@@ -126,6 +126,7 @@ class CatalogueService:
         featured_only: bool = False,
         skip: int = 0,
         limit: int = 50,
+        base_url: str | None = None,
     ) -> list[ProductRead]:
         stmt = (
             select(Product, Category)
@@ -156,6 +157,8 @@ class CatalogueService:
                 .order_by(ProductImage.sort_order)
                 .limit(1)
             )
+            if primary_image and primary_image.startswith('/') and base_url:
+                primary_image = base_url.rstrip('/') + primary_image
             availability = self._compute_product_availability(product, variants)
             products.append(
                 ProductRead(
@@ -175,7 +178,7 @@ class CatalogueService:
             )
         return products
 
-    def get_product_by_slug(self, slug: str) -> ProductDetailRead:
+    def get_product_by_slug(self, slug: str, base_url: str | None = None) -> ProductDetailRead:
         product = self.db.scalar(
             select(Product).where(
                 Product.slug == slug, Product.status == ProductStatus.active
@@ -193,10 +196,16 @@ class CatalogueService:
             )
             .order_by(ProductImage.sort_order)
         ).all()
+        # Resolve relative image URLs to full URLs
+        resolved_images = []
+        for img in images:
+            img_url = img.url
+            if img_url and img_url.startswith('/') and base_url:
+                img_url = base_url.rstrip('/') + img_url
+            resolved_images.append(ProductImageRead.model_validate(img).model_copy(update={"url": img_url}))
         specs = self.db.scalars(
             select(ProductSpecification)
             .where(ProductSpecification.product_id == product.id)
-            .order_by(ProductSpecification.sort_order)
         ).all()
         variants = self.db.scalars(
             select(ProductVariant).where(
@@ -232,6 +241,11 @@ class CatalogueService:
             effective_price = breakdown.total_price
             discount_amount = breakdown.discount_amount
 
+        # Resolve primary_image_url
+        primary_image_url = product.primary_image_url
+        if primary_image_url and primary_image_url.startswith('/') and base_url:
+            primary_image_url = base_url.rstrip('/') + primary_image_url
+
         return ProductDetailRead(
             id=product.id,
             slug=product.slug,
@@ -245,10 +259,11 @@ class CatalogueService:
             category_name=category.name if category else "Unknown",
             meta_title=product.meta_title,
             meta_description=product.meta_description,
-            images=[ProductImageRead.model_validate(img) for img in images],
+            images=resolved_images,
             specifications=[ProductSpecRead.model_validate(spec) for spec in specs],
             variants=variant_reads,
             effective_price=effective_price,
             discount_amount=discount_amount,
             promotion=promo_out,
+            primary_image_url=primary_image_url,
         )
