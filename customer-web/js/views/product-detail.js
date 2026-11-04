@@ -95,7 +95,7 @@ export async function renderProductDetail(app, slug) {
           <!-- Image Gallery -->
           <div class="product-gallery">
             <div class="gallery-main" id="gallery-main">
-              <img src="${escapeHtml(galleryImages[0])}" alt="${escapeHtml(product.name)}" class="gallery-main-img" />
+              <img src="${escapeHtml(galleryImages[0])}" alt="${escapeHtml(product.name)}" id="gallery-main-img" class="gallery-main-img" />
               <div class="gallery-nav">
                 <button class="gallery-nav-btn prev" id="gallery-prev">&#8249;</button>
                 <button class="gallery-nav-btn next" id="gallery-next">&#8250;</button>
