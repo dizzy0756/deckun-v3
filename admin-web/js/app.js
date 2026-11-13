@@ -137,17 +137,131 @@ function getUrlParams() {
   );
 }
 
-async function initNotifications() {
-  try {
-    const data = await api.get("/api/admin/notifications/", { unread_only: true });
-    const badge = document.getElementById("notification-badge");
-    if (data && data.length > 0) {
-      badge.textContent = String(data.length);
+function initNotifications() {
+  const btn = document.getElementById("notifications-btn");
+  const panel = document.getElementById("notifications-panel");
+  const badge = document.getElementById("notification-badge");
+  if (!btn || !panel) return;
+
+  const esc = (text) => {
+    const div = document.createElement("div");
+    div.textContent = text == null ? "" : String(text);
+    return div.innerHTML;
+  };
+
+  const setBadge = (count) => {
+    if (!badge) return;
+    if (count > 0) {
+      badge.textContent = String(count);
       badge.classList.remove("hidden");
+    } else {
+      badge.textContent = "0";
+      badge.classList.add("hidden");
     }
-  } catch (err) {
-    /* unauthenticated — will redirect */
-  }
+  };
+
+  const refreshBadge = async () => {
+    try {
+      const unread = await api.get("/api/admin/notifications/", { unread_only: true });
+      setBadge((unread || []).length);
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  const closePanel = () => {
+    panel.classList.remove("show");
+    btn.setAttribute("aria-expanded", "false");
+  };
+
+  const openPanel = async () => {
+    panel.classList.add("show");
+    btn.setAttribute("aria-expanded", "true");
+    panel.innerHTML = `<div class="notif-head"><strong>Notifications</strong></div><div class="loading" style="padding:1rem;">Loading…</div>`;
+
+    let items = [];
+    try {
+      items = await api.get("/api/admin/notifications/");
+    } catch (e) {
+      panel.innerHTML = `<div class="notif-head"><strong>Notifications</strong></div>
+        <p class="error-text" style="padding:1rem;">Could not load notifications.</p>`;
+      return;
+    }
+
+    const unreadCount = items.filter((n) => !n.is_read).length;
+
+    panel.innerHTML = `
+      <div class="notif-head">
+        <strong>Notifications</strong>
+        ${unreadCount > 0 ? `<button class="btn btn-secondary btn-sm" id="notif-mark-all">Mark all read</button>` : ""}
+      </div>
+      ${items.length === 0
+        ? `<p class="empty-state" style="padding:1.25rem;margin:0;">No notifications.</p>`
+        : items.map((n) => `
+            <div class="notification-item ${n.is_read ? "" : "unread"}" data-id="${n.id}" data-order="${n.order_id || ""}">
+              <div class="notification-title">${esc(n.title)}</div>
+              <div class="notification-msg">${esc(n.message)}</div>
+              <div class="notification-time">
+                ${new Date(n.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </div>
+          `).join("")}
+    `;
+
+    const markRead = async (id) => {
+      try {
+        await api.patch(`/api/admin/notifications/${id}/read`, {});
+        await refreshBadge();
+      } catch (e) {
+        /* ignore */
+      }
+    };
+
+    panel.querySelectorAll(".notification-item").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const id = el.dataset.id;
+        if (el.classList.contains("unread")) {
+          el.classList.remove("unread");
+          await markRead(id);
+        }
+        if (el.dataset.order) {
+          closePanel();
+          window.location.hash = `#orders/${el.dataset.order}`;
+        }
+      });
+    });
+
+    const markAllBtn = document.getElementById("notif-mark-all");
+    if (markAllBtn) {
+      markAllBtn.addEventListener("click", async () => {
+        markAllBtn.disabled = true;
+        markAllBtn.textContent = "Marking…";
+        const unread = items.filter((n) => !n.is_read);
+        for (const n of unread) {
+          await markRead(n.id);
+        }
+        await openPanel();
+      });
+    }
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (panel.classList.contains("show")) closePanel();
+    else openPanel();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!panel.classList.contains("show")) return;
+    if (panel.contains(e.target) || btn.contains(e.target)) return;
+    closePanel();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePanel();
+  });
+
+  refreshBadge();
 }
 
 function checkAuth() {
@@ -168,6 +282,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("settings-btn")?.addEventListener("click", () => {
     window.location.hash = "#settings";
+  });
+
+  document.getElementById("logout-btn")?.addEventListener("click", () => {
+    logout();
   });
 
   window.addEventListener("hashchange", () => {
