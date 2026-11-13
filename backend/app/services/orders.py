@@ -225,7 +225,18 @@ class OrderService:
             )
 
         delivery_fee = None
-        total_amount = subtotal - total_discount
+
+        # Apply a code-based promo at cart level (after per-line discounts)
+        after_line_discounts = max(0, subtotal - total_discount)
+        if checkout_data.promotion_code:
+            result = self._promotions.validate_code(
+                checkout_data.promotion_code, after_line_discounts
+            )
+            if not result.valid:
+                raise HTTPException(status_code=400, detail=result.message)
+            total_discount += result.discount_amount
+
+        total_amount = max(0, subtotal - total_discount)
 
         order_number = self._generate_order_number()
         order = Order(
@@ -352,7 +363,7 @@ class OrderService:
             OrderStatus.placed,
             OrderStatus.confirmed,
             str(admin_id),
-            f"Confirmed with delivery fee: ₹{delivery_fee / 100:.2f}",
+            f"Confirmed with delivery fee: ₹{delivery_fee}",
         )
         self._notifications.create(
             NotificationType.order_confirmed,

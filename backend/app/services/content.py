@@ -5,12 +5,47 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import WebsiteContent
-from app.schemas import WebsiteContentRead, WebsiteContentUpdate
+from app.schemas import (
+    WebsiteContentCreate,
+    WebsiteContentRead,
+    WebsiteContentUpdate,
+)
 
 
 class ContentService:
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def create_content(self, data: WebsiteContentCreate) -> WebsiteContentRead:
+        existing = self.db.scalar(
+            select(WebsiteContent).where(
+                WebsiteContent.content_key == data.content_key
+            )
+        )
+        if existing:
+            raise HTTPException(
+                status_code=409, detail="Content key already exists"
+            )
+        content = WebsiteContent(
+            content_key=data.content_key,
+            content_type=data.content_type,
+            text_value=data.text_value,
+            image_url=data.image_url,
+            is_active=data.is_active,
+        )
+        self.db.add(content)
+        self.db.flush()
+        return WebsiteContentRead.model_validate(content)
+
+    def delete_content(self, key: str) -> bool:
+        content = self.db.scalar(
+            select(WebsiteContent).where(WebsiteContent.content_key == key)
+        )
+        if not content:
+            raise HTTPException(status_code=404, detail="Content not found")
+        self.db.delete(content)
+        self.db.flush()
+        return True
 
     def get_all_public(self) -> dict[str, dict]:
         contents = self.db.scalars(

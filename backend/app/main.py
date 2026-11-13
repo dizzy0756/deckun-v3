@@ -10,6 +10,7 @@ from app.api.content import router as content_router
 from app.api.notifications import router as notifications_router
 from app.api.orders import router as orders_router
 from app.api.pincodes import router as pincodes_router
+from app.api.promotions import router as promotions_router
 from app.api.reviews import router as reviews_router
 from app.core.config import settings
 
@@ -30,6 +31,7 @@ app.include_router(orders_router)
 app.include_router(reviews_router)
 app.include_router(content_router)
 app.include_router(pincodes_router)
+app.include_router(promotions_router)
 app.include_router(notifications_router)
 app.include_router(admin_router)
 

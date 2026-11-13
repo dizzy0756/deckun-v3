@@ -56,6 +56,31 @@ class WebsiteContentUpdate(BaseModel):
     content_type: str | None = None
 
 
+class WebsiteContentCreate(BaseModel):
+    content_key: str
+    content_type: str = "text"
+    text_value: str | None = None
+    image_url: str | None = None
+    is_active: bool = True
+
+    @field_validator("content_key")
+    @classmethod
+    def validate_key(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("content_key is required")
+        if len(v) > 100:
+            raise ValueError("content_key must be 100 characters or fewer")
+        return v
+
+    @field_validator("content_type")
+    @classmethod
+    def validate_type(cls, v: str) -> str:
+        if v not in ("text", "image"):
+            raise ValueError("content_type must be 'text' or 'image'")
+        return v
+
+
 class SettingRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Promotion, PromotionProduct
@@ -10,10 +10,47 @@ from app.schemas import (
     PromotionCreate,
     PromotionRead,
     PromotionUpdate,
+    PromotionValidateResult,
 )
 
 
 class PromotionService:
+    def find_active_by_code(self, code: str) -> Promotion | None:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        return self.db.scalar(
+            select(Promotion).where(
+                func.upper(Promotion.code) == code.strip().upper(),
+                Promotion.is_active.is_(True),
+                Promotion.starts_at <= now,
+                Promotion.ends_at >= now,
+            )
+        )
+
+    def validate_code(self, code: str, subtotal: int) -> PromotionValidateResult:
+        promo = self.find_active_by_code(code)
+        if not promo:
+            return PromotionValidateResult(
+                valid=False,
+                code=code.strip().upper(),
+                message="Invalid or expired promo code",
+                discount_amount=0,
+            )
+
+        if promo.discount_type == "percent":
+            amount = int(round(subtotal * float(promo.discount_value) / 100))
+        else:
+            amount = int(round(float(promo.discount_value)))
+        amount = max(0, min(amount, max(subtotal, 0)))
+
+        return PromotionValidateResult(
+            valid=True,
+            code=promo.code or code.strip().upper(),
+            name=promo.name,
+            discount_type=promo.discount_type,
+            discount_value=float(promo.discount_value),
+            discount_amount=amount,
+            message=f"{promo.name} applied",
+        )
     def __init__(self, db: Session) -> None:
         self.db = db
 

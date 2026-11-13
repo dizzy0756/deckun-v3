@@ -10,8 +10,41 @@ export async function render() {
       </div>
 
       <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;">
-        <input type="text" id="content-search" class="form-control" placeholder="Search key or value…" style="max-width:320px;" />
+        <input type="text" id="content-search" class="form-control" placeholder="Search key or value…" style="max-width:300px;" />
+        <button class="btn btn-primary" id="new-content-btn">+ New Content</button>
         <span id="content-count" style="color:var(--color-text-muted);font-size:0.875rem;"></span>
+      </div>
+
+      <div id="new-content-panel" class="card" style="display:none;">
+        <div class="card-header">New Content Item</div>
+        <form id="new-content-form">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label>Key *</label>
+              <input type="text" name="content_key" class="form-control" required placeholder="home.hero.title" />
+            </div>
+            <div class="form-group">
+              <label>Type *</label>
+              <select name="content_type" class="form-control" id="new-content-type">
+                <option value="text">Text</option>
+                <option value="image">Image</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="new-text-group">
+            <label>Text Value</label>
+            <textarea name="text_value" rows="2" class="form-control"></textarea>
+          </div>
+          <div class="form-group" id="new-image-group" style="display:none;">
+            <label>Image URL</label>
+            <input type="url" name="image_url" class="form-control" placeholder="https://…" />
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" id="cancel-new-content">Cancel</button>
+          </div>
+          <div id="new-content-error" class="error-text" style="margin-top:0.5rem;"></div>
+        </form>
       </div>
 
       <div id="content-list">
@@ -21,16 +54,11 @@ export async function render() {
   `;
 
   const wrap = document.getElementById("content-list");
+  const countEl = document.getElementById("content-count");
   let items = [];
-  try {
-    items = await api.get("/api/admin/content/");
-  } catch (err) {
-    wrap.innerHTML = `<p class="error-text">Failed to load content.</p>`;
-    return;
-  }
 
   const paint = (list) => {
-    document.getElementById("content-count").textContent = `${list.length} item${list.length === 1 ? "" : "s"}`;
+    countEl.textContent = `${list.length} item${list.length === 1 ? "" : "s"}`;
     if (!list || list.length === 0) {
       wrap.innerHTML = `<p class="empty-state">No content items.</p>`;
       return;
@@ -40,11 +68,14 @@ export async function render() {
       const isImage = c.content_type === "image" || (c.image_url && !c.text_value);
       return `
         <div class="card" data-key="${escapeHtml(c.content_key)}">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.75rem;flex-wrap:wrap;">
             <code style="font-weight:600;">${escapeHtml(c.content_key)}</code>
-            <span class="badge ${c.is_active ? "badge-active" : "badge-inactive"}">
-              ${c.is_active ? "Visible" : "Hidden"}
-            </span>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <span class="badge ${c.is_active ? "badge-active" : "badge-inactive"}">
+                ${c.is_active ? "Visible" : "Hidden"}
+              </span>
+              <button class="btn btn-danger btn-sm" data-action="delete">Delete</button>
+            </div>
           </div>
 
           ${isImage ? `
@@ -70,11 +101,11 @@ export async function render() {
       `;
     }).join("");
 
-    // Wire up actions
     wrap.querySelectorAll(".card").forEach((card) => {
       const key = card.dataset.key;
       const saveBtn = card.querySelector('[data-action="save"]');
       const toggleBtn = card.querySelector('[data-action="toggle"]');
+      const deleteBtn = card.querySelector('[data-action="delete"]');
 
       saveBtn.addEventListener("click", async () => {
         saveBtn.disabled = true;
@@ -110,10 +141,31 @@ export async function render() {
           toggleBtn.disabled = false;
         }
       });
+
+      deleteBtn.addEventListener("click", async () => {
+        if (!confirm(`Delete content "${key}"?`)) return;
+        deleteBtn.disabled = true;
+        try {
+          await api.delete(`/api/admin/content/${encodeURIComponent(key)}`);
+          items = items.filter((i) => i.content_key !== key);
+          paint(items);
+        } catch (e) {
+          alert("Failed: " + e.message);
+          deleteBtn.disabled = false;
+        }
+      });
     });
   };
 
-  paint(items);
+  const load = async () => {
+    wrap.innerHTML = `<div class="loading">Loading…</div>`;
+    try {
+      items = await api.get("/api/admin/content/");
+      paint(items);
+    } catch (err) {
+      wrap.innerHTML = `<p class="error-text">Failed to load content.</p>`;
+    }
+  };
 
   document.getElementById("content-search").addEventListener("input", (e) => {
     const q = e.target.value.trim().toLowerCase();
@@ -122,6 +174,62 @@ export async function render() {
       [c.content_key, c.text_value, c.image_url].some((v) => String(v || "").toLowerCase().includes(q))
     ));
   });
+
+  /* ---- New content panel ---- */
+  const panel = document.getElementById("new-content-panel");
+  const newForm = document.getElementById("new-content-form");
+  const typeSelect = document.getElementById("new-content-type");
+  const textGroup = document.getElementById("new-text-group");
+  const imageGroup = document.getElementById("new-image-group");
+  const newError = document.getElementById("new-content-error");
+
+  document.getElementById("new-content-btn").addEventListener("click", () => {
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    newForm.reset();
+    textGroup.style.display = "block";
+    imageGroup.style.display = "none";
+    newError.textContent = "";
+  });
+
+  document.getElementById("cancel-new-content").addEventListener("click", () => {
+    panel.style.display = "none";
+  });
+
+  typeSelect.addEventListener("change", () => {
+    const isImage = typeSelect.value === "image";
+    textGroup.style.display = isImage ? "none" : "block";
+    imageGroup.style.display = isImage ? "block" : "none";
+  });
+
+  newForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    newError.textContent = "";
+    const isImage = typeSelect.value === "image";
+
+    const payload = {
+      content_key: newForm.content_key.value.trim(),
+      content_type: typeSelect.value,
+      text_value: isImage ? null : (newForm.text_value.value.trim() || null),
+      image_url: isImage ? (newForm.image_url.value.trim() || null) : null,
+      is_active: true,
+    };
+
+    const btn = newForm.querySelector("button[type=submit]");
+    btn.disabled = true;
+    btn.textContent = "Creating…";
+    try {
+      await api.post("/api/admin/content/", payload);
+      panel.style.display = "none";
+      await load();
+    } catch (err) {
+      newError.textContent = "Failed: " + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Create";
+    }
+  });
+
+  load();
 }
 
 function escapeHtml(text) {

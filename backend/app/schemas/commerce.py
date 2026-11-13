@@ -142,6 +142,7 @@ class CheckoutBase(BaseModel):
     shipping_address_id: UUID
     payment_method: PaymentMethod
     customer_note: str | None = None
+    promotion_code: str | None = None
 
     @field_validator("payment_method")
     @classmethod

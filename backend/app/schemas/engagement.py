@@ -96,6 +96,29 @@ class PromotionUpdate(BaseModel):
     product_ids: list[UUID] | None = None
 
 
+class PromotionValidateRequest(BaseModel):
+    code: str
+    subtotal: int = 0
+
+    @field_validator("code")
+    @classmethod
+    def normalize_code(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Promotion code is required")
+        return v.upper()
+
+
+class PromotionValidateResult(BaseModel):
+    valid: bool
+    code: str
+    name: str | None = None
+    discount_type: str | None = None
+    discount_value: float | None = None
+    discount_amount: int = 0
+    message: str = ""
+
+
 class NotificationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

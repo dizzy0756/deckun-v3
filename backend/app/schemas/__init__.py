@@ -30,6 +30,8 @@ from app.schemas.engagement import (
     PromotionCreate,
     PromotionRead,
     PromotionUpdate,
+    PromotionValidateRequest,
+    PromotionValidateResult,
     ReviewCreate,
     ReviewRead,
     ReviewStatusChange,
@@ -55,6 +57,7 @@ from app.schemas.operations import (
     PincodeUpdate,
     SettingRead,
     SettingUpdate,
+    WebsiteContentCreate,
     WebsiteContentRead,
     WebsiteContentUpdate,
 )
@@ -96,6 +99,8 @@ __all__ = [
     "PromotionCreate",
     "PromotionRead",
     "PromotionUpdate",
+    "PromotionValidateRequest",
+    "PromotionValidateResult",
     "ReviewCreate",
     "ReviewRead",
     "ReviewStatusChange",
@@ -108,6 +113,7 @@ __all__ = [
     "UserRegister",
     "UserUpdate",
     "VariantAvailabilityRead",
+    "WebsiteContentCreate",
     "WebsiteContentRead",
     "WebsiteContentUpdate",
 ]
