@@ -48,10 +48,10 @@ class PromotionService:
                 [
                     pp.product_id
                     for pp in self.db.scalars(
-                        select(PromotionProduct)
-                        .where(PromotionProduct.promotion_id == promo.id)
-                        .all()
-                    )
+                        select(PromotionProduct).where(
+                            PromotionProduct.promotion_id == promo.id
+                        )
+                    ).all()
                 ]
                 if promo
                 else []

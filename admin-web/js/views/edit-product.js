@@ -1,8 +1,8 @@
 import { api } from "../api.js";
 
-const rupee = (paise) => {
-  if (paise == null) return "₹0.00";
-  return "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const rupee = (amount) => {
+  if (amount == null) return "₹0.00";
+  return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export async function render({ id }) {

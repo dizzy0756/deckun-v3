@@ -22,6 +22,7 @@ from app.models import (
     ProductVariant,
     ServiceablePincode,
     Setting,
+    WebsiteContent,
 )
 
 SAMPLE_CATEGORIES = [
@@ -262,6 +263,83 @@ def seed_settings(db: SessionLocal) -> None:
         db.flush()
 
 
+SAMPLE_CONTENT = [
+    {
+        "content_key": "site.name",
+        "content_type": "text",
+        "text_value": "Deckun",
+        "is_active": True,
+    },
+    {
+        "content_key": "home.hero.title",
+        "content_type": "text",
+        "text_value": "Experience Premium Outdoor Lifestyle",
+        "is_active": True,
+    },
+    {
+        "content_key": "home.hero.subtitle",
+        "content_type": "text",
+        "text_value": "Helping you enjoy nature comfortably with gear built for adventure and designed for durability.",
+        "is_active": True,
+    },
+    {
+        "content_key": "home.hero.image",
+        "content_type": "image",
+        "image_url": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=800&fit=crop",
+        "is_active": True,
+    },
+    {
+        "content_key": "home.announcement",
+        "content_type": "text",
+        "text_value": "Free shipping on orders above ₹999",
+        "is_active": True,
+    },
+    {
+        "content_key": "about.intro",
+        "content_type": "text",
+        "text_value": "Deckun designs durable outdoor and furniture essentials for everyday adventure.",
+        "is_active": True,
+    },
+    {
+        "content_key": "contact.phone",
+        "content_type": "text",
+        "text_value": "+91 90000 00000",
+        "is_active": True,
+    },
+    {
+        "content_key": "contact.email",
+        "content_type": "text",
+        "text_value": "hello@deckun.in",
+        "is_active": True,
+    },
+    {
+        "content_key": "contact.address",
+        "content_type": "text",
+        "text_value": "Imphal, Manipur, India",
+        "is_active": True,
+    },
+    {
+        "content_key": "footer.tagline",
+        "content_type": "text",
+        "text_value": "Gear built for adventure.",
+        "is_active": True,
+    },
+]
+
+
+def seed_content(db: SessionLocal) -> None:
+    for row in SAMPLE_CONTENT:
+        existing = db.execute(
+            select(WebsiteContent).where(
+                WebsiteContent.content_key == row["content_key"]
+            )
+        ).scalar_one_or_none()
+        if existing:
+            continue
+        db.add(WebsiteContent(**row))
+        db.flush()
+
+
 def seed_admin(db: SessionLocal) -> None:
     existing = db.execute(
         select(AdminUser).where(AdminUser.email == SAMPLE_ADMIN["email"])
@@ -352,6 +430,7 @@ def main() -> None:
     try:
         cats = seed_categories(db)
         seed_settings(db)
+        seed_content(db)
         seed_admin(db)
         seed_pincodes(db)
         seed_products(db, cats)
@@ -369,6 +448,9 @@ def main() -> None:
             f"  PIN codes:  {len(db.execute(select(ServiceablePincode)).scalars().all())} rows"
         )
         print(f"  Settings:   {len(db.execute(select(Setting)).scalars().all())} rows")
+        print(
+            f"  Content:    {len(db.execute(select(WebsiteContent)).scalars().all())} rows"
+        )
     except Exception:
         db.rollback()
         raise

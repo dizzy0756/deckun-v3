@@ -1,8 +1,8 @@
 import { api } from "../api.js";
 
-const rupee = (paise) => {
-  if (paise == null) return "₹0.00";
-  return "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const rupee = (amount) => {
+  if (amount == null) return "₹0.00";
+  return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export async function render({ id }) {
@@ -73,9 +73,9 @@ async function renderProductDetail(productId) {
 
 function renderProductDetailContent(product) {
   const app = document.getElementById("app");
-  const rupee = (paise) => {
-    if (paise == null) return "₹0.00";
-    return "₹" + (paise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const rupee = (amount) => {
+    if (amount == null) return "₹0.00";
+    return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const imageUrl = product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop');
