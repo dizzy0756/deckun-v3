@@ -40,10 +40,11 @@ function initNav() {
   const sidebar = document.getElementById("nav-list");
   const bottomNav = document.getElementById("bottom-nav");
   const menuBtn = document.getElementById("menu-btn");
+  const menuClose = document.getElementById("menu-close");
 
   if (sidebar) {
     sidebar.innerHTML = NAV_ITEMS.map((item) =>
-      `<li><a href="${item.hash}">${item.label}</a></li>`
+      `<li><a href="${item.hash}" class="${item.hash === '#dashboard' ? 'active' : ''}"><span>${item.label}</span></a>`
     ).join("");
   }
 
@@ -55,6 +56,10 @@ function initNav() {
 
   menuBtn?.addEventListener("click", () => {
     document.getElementById("sidebar")?.classList.toggle("hidden");
+  });
+
+  menuClose?.addEventListener("click", () => {
+    document.getElementById("sidebar")?.classList.add("hidden");
   });
 
   document.querySelectorAll("[data-hash], .sidebar a").forEach((link) => {
