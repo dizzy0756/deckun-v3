@@ -1,6 +1,12 @@
-import { api, getToken } from '../api.js';
+import { api, getToken, isLoggedIn } from '../api.js';
 
 const rupee = (amount) => "₹" + Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const escapeHtml = (text) => {
+  const div = document.createElement('div');
+  div.textContent = text == null ? '' : String(text);
+  return div.innerHTML;
+};
 
 export async function renderCheckout(app) {
   const cart = JSON.parse(localStorage.getItem('deckun_cart') || '[]');
@@ -13,72 +19,154 @@ export async function renderCheckout(app) {
     return;
   }
 
+  if (!isLoggedIn()) {
+    sessionStorage.setItem('post_login_redirect', '#checkout');
+    app.innerHTML = `
+      <section class="section">
+        <div class="container" style="max-width:600px; text-align:center;">
+          <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.5rem;">Sign in to Checkout</h1>
+          <p style="color:var(--color-text-muted); margin-bottom:1.5rem;">You need an account to place an order.</p>
+          <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+            <a href="#login" class="btn btn-primary">Sign In</a>
+            <a href="#register" class="btn btn-secondary">Create Account</a>
+          </div>
+        </div>
+      </section>
+    `;
+    return;
+  }
+
   const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0);
   let appliedCode = null;
   let discount = 0;
+  let addresses = [];
+
+  app.innerHTML = `<section class="section"><div class="container" style="max-width:680px;"><div class="loading">Loading checkout…</div></div></section>`;
+
+  try {
+    addresses = await api.get('/auth/me/addresses');
+  } catch (e) {
+    app.innerHTML = `<section class="section"><div class="container" style="max-width:680px;">
+      <p class="error-text">Could not load your addresses: ${escapeHtml(e.message)}</p>
+    </div></section>`;
+    return;
+  }
+
+  const defaultAddr = addresses.find((a) => a.is_default) || addresses[0] || null;
 
   app.innerHTML = `
     <section class="section">
-      <div class="container" style="max-width:600px;">
+      <div class="container" style="max-width:680px;">
         <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:1.5rem;">Checkout</h1>
-        <form id="checkout-form" style="display:flex; flex-direction:column; gap:1rem;">
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Full Name</label>
-            <input type="text" name="name" required style="width:100%; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;" />
-          </div>
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Mobile Number</label>
-            <input type="tel" name="mobile" required style="width:100%; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;" />
-          </div>
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">PIN Code</label>
-            <input type="text" name="pincode" required style="width:100%; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;" />
-          </div>
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Address</label>
-            <textarea name="address" required rows="3" style="width:100%; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit; resize:vertical;"></textarea>
-          </div>
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Landmark (Optional)</label>
-            <input type="text" name="landmark" style="width:100%; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;" />
-          </div>
 
-          <div>
-            <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Promo Code</label>
-            <div style="display:flex; gap:0.5rem;">
-              <input type="text" id="promo-code" placeholder="Enter code" style="flex:1; padding:0.75rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit; text-transform:uppercase;" />
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <div class="card-header" style="margin:0;">Delivery Address</div>
+            <a href="#account" class="btn btn-secondary btn-sm">Manage Addresses</a>
+          </div>
+          <div id="address-picker" style="margin-top:0.75rem;">
+            ${addresses.length === 0
+              ? `<p style="color:var(--color-text-muted);font-size:0.875rem;">No saved address. Add one below.</p>`
+              : addresses.map((a) => `
+                <label style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.75rem;border:1px solid var(--color-border);border-radius:var(--radius);margin-bottom:0.5rem;cursor:pointer;">
+                  <input type="radio" name="address_id" value="${a.id}" ${defaultAddr && a.id === defaultAddr.id ? 'checked' : ''} style="margin-top:0.25rem;" />
+                  <span style="font-size:0.875rem;">
+                    <strong>${escapeHtml(a.full_name)}</strong> · ${escapeHtml(a.phone_number)}
+                    ${a.is_default ? '<span class="badge badge-active" style="margin-left:0.35rem;">Default</span>' : ''}<br/>
+                    ${escapeHtml(a.address_line1)}${a.address_line2 ? ', ' + escapeHtml(a.address_line2) : ''}<br/>
+                    ${escapeHtml(a.city)}, ${escapeHtml(a.state)} ${escapeHtml(a.pincode)}
+                  </span>
+                </label>
+              `).join("")}
+          </div>
+          <button type="button" id="toggle-new-addr" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">
+            + Add a new address
+          </button>
+        </div>
+
+        <div class="card" id="new-addr-card" style="display:none;">
+          <div class="card-header">New Address</div>
+          <form id="new-addr-form">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" name="full_name" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Address Line 1 *</label>
+              <input type="text" name="address_line1" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Address Line 2</label>
+              <input type="text" name="address_line2" class="form-control" />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;">
+              <div class="form-group"><label>City *</label><input type="text" name="city" class="form-control" required /></div>
+              <div class="form-group"><label>State *</label><input type="text" name="state" class="form-control" required /></div>
+              <div class="form-group"><label>PIN *</label><input type="text" name="pincode" class="form-control" required /></div>
+            </div>
+            <div class="form-group">
+              <label>Phone Number *</label>
+              <input type="tel" name="phone_number" class="form-control" required />
+            </div>
+            <div class="form-group">
+              <label>Landmark</label>
+              <input type="text" name="landmark" class="form-control" />
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Save Address</button>
+              <button type="button" id="cancel-new-addr" class="btn btn-secondary btn-sm">Cancel</button>
+            </div>
+            <div id="new-addr-error" class="error-text" style="margin-top:0.5rem;"></div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Order Summary</div>
+          <div id="summary-lines" style="font-size:0.875rem;color:var(--color-text-muted);margin-bottom:0.5rem;">
+            ${cart.map((i) => `<div style="display:flex;justify-content:space-between;"><span>${escapeHtml(i.name)} ×${i.quantity}</span><span>${rupee(Number(i.price) * i.quantity)}</span></div>`).join("")}
+          </div>
+          <div class="form-group">
+            <label>Promo Code</label>
+            <div style="display:flex;gap:0.5rem;">
+              <input type="text" id="promo-code" class="form-control" placeholder="Enter code" style="text-transform:uppercase;" />
               <button type="button" id="apply-promo" class="btn btn-secondary">Apply</button>
             </div>
-            <div id="promo-msg" style="font-size:0.875rem; margin-top:0.375rem; min-height:1.1rem;"></div>
+            <div id="promo-msg" style="font-size:0.875rem;margin-top:0.375rem;min-height:1.1rem;"></div>
           </div>
-
-          <div style="padding:1rem; background:var(--color-surface-alt); border-radius:var(--radius); display:grid; gap:0.35rem;">
-            <div style="display:flex; justify-content:space-between;"><span>Subtotal</span><span>${rupee(subtotal)}</span></div>
-            <div id="discount-row" style="display:none; justify-content:space-between; color:var(--color-success);">
-              <span>Discount</span><span id="discount-value">− ${rupee(0)}</span>
+          <div style="display:grid;gap:0.35rem;">
+            <div style="display:flex;justify-content:space-between;"><span>Subtotal</span><span>${rupee(subtotal)}</span></div>
+            <div id="discount-row" style="display:none;justify-content:space-between;color:var(--color-success);">
+              <span>Discount</span><span id="discount-value"></span>
             </div>
-            <div style="display:flex; justify-content:space-between; font-weight:700; border-top:1px solid var(--color-border); padding-top:0.5rem;">
-              <span>Payable</span><span id="payable">${rupee(subtotal)}</span>
+            <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--color-border);padding-top:0.5rem;">
+              <span>Payable (COD)</span><span id="payable">${rupee(subtotal)}</span>
             </div>
-            <div style="color:var(--color-text-muted); font-size:0.875rem;">Payment: Cash on Delivery</div>
           </div>
+        </div>
 
-          <button type="submit" class="btn btn-primary" style="width:100%;">Place Order (COD)</button>
-        </form>
+        <button id="place-order" class="btn btn-primary" style="width:100%; margin-top:1rem;">Place Order (COD)</button>
+        <div id="checkout-error" class="error-text" style="margin-top:0.75rem;"></div>
       </div>
     </section>
   `;
 
+  // Restore selection of an address that was just created
+  const preselected = sessionStorage.getItem('checkout_select_address');
+  if (preselected) {
+    const radio = document.querySelector(`input[name="address_id"][value="${preselected}"]`);
+    if (radio) radio.checked = true;
+    sessionStorage.removeItem('checkout_select_address');
+  }
+
   const promoInput = document.getElementById('promo-code');
-  const applyBtn = document.getElementById('apply-promo');
-  const promoMsg = document.getElementById('promo-msg');
+  const applyBtn = document.getElementById('apply-promo');  const promoMsg = document.getElementById('promo-msg');
   const discountRow = document.getElementById('discount-row');
   const discountValue = document.getElementById('discount-value');
   const payableEl = document.getElementById('payable');
+  const errBox = document.getElementById('checkout-error');
 
   const refreshTotals = () => {
-    const payable = Math.max(0, subtotal - discount);
-    payableEl.textContent = rupee(payable);
+    payableEl.textContent = rupee(Math.max(0, subtotal - discount));
     if (discount > 0) {
       discountRow.style.display = 'flex';
       discountValue.textContent = '− ' + rupee(discount);
@@ -87,14 +175,13 @@ export async function renderCheckout(app) {
     }
   };
 
-  applyBtn.addEventListener('click', async () => {
+  applyBtn.onclick = async () => {
     const code = promoInput.value.trim();
     if (!code) {
       promoMsg.style.color = 'var(--color-error)';
       promoMsg.textContent = 'Enter a promo code';
       return;
     }
-
     applyBtn.disabled = true;
     applyBtn.textContent = '…';
     try {
@@ -121,51 +208,97 @@ export async function renderCheckout(app) {
       applyBtn.disabled = false;
       applyBtn.textContent = 'Apply';
     }
-  });
+  };
 
-  document.getElementById('checkout-form').onsubmit = async (e) => {
+  /* New address form */
+  const newCard = document.getElementById('new-addr-card');
+  const newForm = document.getElementById('new-addr-form');
+  const newErr = document.getElementById('new-addr-error');
+
+  document.getElementById('toggle-new-addr').onclick = () => {
+    newCard.style.display = newCard.style.display === 'none' ? 'block' : 'none';
+  };
+  document.getElementById('cancel-new-addr').onclick = () => { newCard.style.display = 'none'; };
+
+  newForm.onsubmit = async (e) => {
     e.preventDefault();
-    const form = new FormData(e.target);
-    const data = Object.fromEntries(form);
+    newErr.textContent = '';
+    const btn = newForm.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+      const created = await api.post('/auth/me/addresses', {
+        label: 'Home',
+        full_name: newForm.full_name.value.trim(),
+        address_line1: newForm.address_line1.value.trim(),
+        address_line2: newForm.address_line2.value.trim() || null,
+        city: newForm.city.value.trim(),
+        state: newForm.state.value.trim(),
+        pincode: newForm.pincode.value.trim(),
+        landmark: newForm.landmark.value.trim() || null,
+        phone_number: newForm.phone_number.value.trim(),
+        is_default: false,
+      });
+      // Re-render so the new address appears and is selected
+      sessionStorage.setItem('checkout_select_address', String(created.id));
+      await renderCheckout(app);
+    } catch (err) {
+      newErr.textContent = 'Failed: ' + err.message;
+      btn.disabled = false;
+      btn.textContent = 'Save Address';
+    }
+  };
 
-    const summary = {
-      name: data.name,
-      mobile: data.mobile,
-      pincode: data.pincode,
-      address: data.address,
-      landmark: data.landmark || null,
-      subtotal,
-      promotion_code: appliedCode,
-      discount,
-      total: Math.max(0, subtotal - discount),
-      placed_at: new Date().toISOString(),
-    };
+  /* Sync local cart to server cart, then create the order */
+  const syncCartToServer = async () => {
+    const serverCart = await api.get('/cart/');
+    for (const item of serverCart.items || []) {
+      await api.delete(`/cart/items/${item.id}`);
+    }
+    for (const item of cart) {
+      if (!item.slug) continue;
+      await api.post('/cart/items', {
+        product_slug: item.slug,
+        variant_sku: item.variant_sku || null,
+        quantity: item.quantity,
+      });
+    }
+  };
 
-    // Persist the most recent checkout summary for the orders view
-    localStorage.setItem('deckun_last_order', JSON.stringify(summary));
+  document.getElementById('place-order').onclick = async () => {
+    errBox.textContent = '';
+    const btn = document.getElementById('place-order');
 
-    // If a customer session exists, create the order server-side.
-    if (getToken()) {
-      try {
-        await api.post('/orders/checkout', {
-          shipping_address_id: summary.shipping_address_id || null,
-          payment_method: 'cod',
-          promotion_code: appliedCode,
-          customer_note: summary.landmark,
-        });
-      } catch (err) {
-        // Address/auth not fully wired yet — fall back to local confirmation
-        console.warn('Server checkout not completed:', err);
-      }
+    const selected = document.querySelector('input[name="address_id"]:checked');
+    if (!selected) {
+      errBox.textContent = 'Please select a delivery address (or add one).';
+      return;
     }
 
-    alert(
-      appliedCode
-        ? `Order placed with ${appliedCode} — you saved ${rupee(discount)} (COD)`
-        : 'Order placed — awaiting confirmation (COD)'
-    );
-    localStorage.removeItem('deckun_cart');
-    document.dispatchEvent(new Event('cart-updated'));
-    window.location.hash = '#orders';
+    btn.disabled = true;
+    btn.textContent = 'Placing order…';
+
+    try {
+      await syncCartToServer();
+      const res = await api.post('/orders/checkout', {
+        shipping_address_id: selected.value,
+        payment_method: 'cod',
+        customer_note: null,
+        promotion_code: appliedCode,
+      });
+
+      localStorage.removeItem('deckun_cart');
+      document.dispatchEvent(new Event('cart-updated'));
+
+      const order = res.order || res;
+      alert(`Order placed: ${order.order_number}`);
+      window.location.hash = `#orders/${order.id}`;
+    } catch (err) {
+      errBox.textContent = 'Could not place order: ' + err.message;
+      btn.disabled = false;
+      btn.textContent = 'Place Order (COD)';
+    }
   };
+
+  refreshTotals();
 }
