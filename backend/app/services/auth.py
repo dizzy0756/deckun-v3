@@ -78,6 +78,16 @@ class AuthService:
             return None
         return admin
 
+    def change_admin_password(self, admin_id: UUID, current_password: str, new_password: str) -> None:
+        admin = self.db.get(AdminUser, admin_id)
+        if not admin:
+            raise ValueError("Admin not found")
+        if not verify_password(current_password, admin.password_hash):
+            raise ValueError("Current password is incorrect")
+        admin.password_hash = get_password_hash(new_password)
+        admin.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        self.db.flush()
+
     def get_user(self, user_id: UUID) -> UserRead | None:
         user = self.db.get(User, user_id)
         if not user or not user.is_active:

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
 from app.core.security import create_admin_token, create_customer_token
-from app.models import User
+from app.models import User, AdminUser
 from app.schemas import (
     AddressCreate,
     AddressRead,
@@ -62,6 +62,24 @@ def admin_login(payload: AdminLogin, db: Session = Depends(get_db)):
         )
     token = create_admin_token(admin.id)
     return Token(access_token=token)
+
+
+@router.post("/admin/change-password")
+def change_admin_password(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_admin: AdminUser = Depends(get_current_admin),
+):
+    service = AuthService(db)
+    try:
+        service.change_admin_password(
+            admin_id=current_admin.id,
+            current_password=payload.get("current_password", ""),
+            new_password=payload.get("new_password", ""),
+        )
+        return {"detail": "Password changed successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/password-reset/request")

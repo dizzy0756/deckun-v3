@@ -138,6 +138,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initNotifications();
   render();
 
+  document.getElementById("settings-btn")?.addEventListener("click", () => {
+    window.location.hash = "#settings";
+  });
+
   window.addEventListener("hashchange", () => {
     render();
   });
