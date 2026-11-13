@@ -252,8 +252,30 @@ tr:hover { background: var(--color-surface-alt); }
   height: 100vh;
   background: #ffffff;
   border-right: 1px solid var(--color-border);
-  z-index: 50;
+  z-index: 60;
   overflow-y: auto;
+  transition: transform 0.25s ease;
+  box-shadow: none;
+}
+
+/* Mobile drawer backdrop */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 55;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.nav-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.nav-open {
+  overflow: hidden;
 }
 
 .nav-header {
@@ -376,6 +398,19 @@ tr:hover { background: var(--color-surface-alt); }
 
   .sidebar {
     display: block;
+    width: 260px;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Desktop keeps the permanent sidebar, so the drawer controls are unnecessary */
+  #menu-btn,
+  #menu-close {
+    display: none;
+  }
+
+  .nav-overlay {
+    display: none;
   }
 
   .app-main {
@@ -388,8 +423,22 @@ tr:hover { background: var(--color-surface-alt); }
 }
 
 @media (max-width: 767px) {
+  /* Off-canvas drawer holding every navigation tab */
   .sidebar {
-    display: none;
+    display: block;
+    width: min(84vw, 300px);
+    z-index: 120;
+    transform: translateX(-105%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Backdrop must sit above the sticky header so taps close the drawer */
+  .nav-overlay {
+    z-index: 110;
   }
 
   .mobile-nav {

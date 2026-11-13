@@ -41,6 +41,8 @@ function initNav() {
   const bottomNav = document.getElementById("bottom-nav");
   const menuBtn = document.getElementById("menu-btn");
   const menuClose = document.getElementById("menu-close");
+  const overlay = document.getElementById("nav-overlay");
+  const drawer = document.getElementById("sidebar");
 
   if (sidebar) {
     sidebar.innerHTML = NAV_ITEMS.map((item) =>
@@ -54,12 +56,33 @@ function initNav() {
     ).join("");
   }
 
+  const openDrawer = () => {
+    drawer?.classList.add("open");
+    overlay?.classList.add("show");
+    document.body.classList.add("nav-open");
+  };
+
+  const closeDrawer = () => {
+    drawer?.classList.remove("open");
+    overlay?.classList.remove("show");
+    document.body.classList.remove("nav-open");
+  };
+
   menuBtn?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.toggle("hidden");
+    if (drawer?.classList.contains("open")) closeDrawer();
+    else openDrawer();
   });
 
-  menuClose?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.add("hidden");
+  menuClose?.addEventListener("click", closeDrawer);
+  overlay?.addEventListener("click", closeDrawer);
+
+  // Close the drawer after picking a destination on mobile
+  drawer?.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", closeDrawer);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDrawer();
   });
 
   document.querySelectorAll("[data-hash], .sidebar a").forEach((link) => {
