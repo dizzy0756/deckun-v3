@@ -50,7 +50,7 @@ async function renderProductList() {
             <div class="product-price">${rupee(p.base_price || p.price || 0)}</div>
           </div>
         </a>
-        <a href="#products/edit/${p.id}" class="btn btn-secondary btn-sm" style="margin-top:0.5rem;">Edit</a>
+        <a href="#products/edit/${p.id}" class="btn btn-secondary btn-sm">Edit</a>
       </li>
     `).join("");
   } catch (err) {
