@@ -98,7 +98,9 @@ function setActiveNav(hash) {
 
 function getRoute() {
   const hash = window.location.hash || "#dashboard";
-  const parts = hash.slice(1).split("/");
+  // Strip the query string so routes like #orders?customer=<id> resolve correctly
+  const path = hash.split("?")[0] || "#dashboard";
+  const parts = path.slice(1).split("/");
   return { name: parts[0] || "dashboard", id: parts[1], subId: parts[2], hash };
 }
 

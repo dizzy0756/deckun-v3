@@ -16,15 +16,16 @@ const rupee = (amount) => {
   return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-export async function render({ id }) {
+export async function render({ id, params }) {
   if (id) {
     await renderOrderDetail(id);
   } else {
-    await renderOrderList();
+    await renderOrderList(params || {});
   }
 }
 
-async function renderOrderList() {
+async function renderOrderList(params = {}) {
+  const customerId = params.customer || null;
   const app = document.getElementById("app");
   app.innerHTML = `
     <section class="section">
@@ -32,6 +33,12 @@ async function renderOrderList() {
         <h2>Orders</h2>
         <p>Manage customer orders</p>
       </div>
+      ${customerId ? `
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <span style="font-size:0.9rem;">Showing orders for this customer only.</span>
+          <a href="#orders" class="btn btn-secondary btn-sm">Show all orders</a>
+        </div>
+      ` : ""}
       <div class="filter-bar" id="filter-bar">
         <button class="filter-chip active" data-filter="">All</button>
         ${Object.entries(STATUS_LABELS).map(([k, v]) =>
@@ -50,10 +57,10 @@ async function renderOrderList() {
   const load = async () => {
     wrap.innerHTML = `<div class="loading">Loading…</div>`;
     try {
-      const url = current
-        ? `/api/admin/orders/?limit=100&status=${current}`
-        : "/api/admin/orders/?limit=100";
-      const orders = await api.get(url);
+      const query = new URLSearchParams({ limit: "100" });
+      if (current) query.set("status", current);
+      if (customerId) query.set("customer_id", customerId);
+      const orders = await api.get(`/api/admin/orders/?${query.toString()}`);
 
       if (!orders || orders.length === 0) {
         wrap.innerHTML = `<p class="empty-state">No ${current ? STATUS_LABELS[current].toLowerCase() + " " : ""}orders found.</p>`;

@@ -96,8 +96,9 @@ class AdminService:
         status: OrderStatus | None = None,
         skip: int = 0,
         limit: int = 50,
+        customer_id: UUID | None = None,
     ) -> list:
-        return self._orders.list_orders_admin(status, skip, limit)
+        return self._orders.list_orders_admin(status, skip, limit, customer_id)
 
     def get_order_detail(self, order_id: UUID):
         return self._orders.get_order_detail(order_id)

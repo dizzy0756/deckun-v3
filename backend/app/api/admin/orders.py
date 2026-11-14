@@ -50,11 +50,14 @@ class WhatsappOrderCreate(BaseModel):
 @router.get("/", response_model=list[OrderListItemRead])
 def list_orders(
     status: OrderStatus | None = None,
+    customer_id: UUID | None = None,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
 ):
-    return AdminService(db).list_orders(status=status, skip=skip, limit=limit)
+    return AdminService(db).list_orders(
+        status=status, skip=skip, limit=limit, customer_id=customer_id
+    )
 
 
 @router.get("/{order_id}", response_model=OrderRead)

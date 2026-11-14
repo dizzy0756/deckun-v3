@@ -455,10 +455,13 @@ class OrderService:
         status: OrderStatus | None = None,
         skip: int = 0,
         limit: int = 50,
+        customer_id: UUID | None = None,
     ) -> list[OrderListItemRead]:
         stmt = select(Order).order_by(Order.created_at.desc())
         if status:
             stmt = stmt.where(Order.status == status)
+        if customer_id:
+            stmt = stmt.where(Order.user_id == customer_id)
         stmt = stmt.offset(skip).limit(limit)
         orders = self.db.scalars(stmt).all()
         return [OrderListItemRead.model_validate(o) for o in orders]
