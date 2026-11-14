@@ -85,6 +85,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .footer-brand .logo { color: white; }
 .footer-text { opacity: 0.9; max-width: 300px; }
 
+/* Mobile-only footer links (About / Contact) — hidden on desktop */
+.footer-links-mobile { display: none; }
+
 /* App main */
 .app-main { min-height: calc(100vh - 200px); }
 
@@ -100,6 +103,25 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .hero h1 { font-size: 3.5rem; }
   .product-grid { grid-template-columns: repeat(4, 1fr); }
   .site-footer { padding: 3rem 1rem 2rem; }
+}
+
+/* Mobile: surface About / Contact in the footer since the bottom nav omits them */
+@media (max-width: 767px) {
+  .footer-links-mobile {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+    font-weight: 600;
+  }
+  .footer-links-mobile a {
+    color: #ffffff;
+    opacity: 0.9;
+  }
+  .footer-links-mobile a:hover,
+  .footer-links-mobile a:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+  }
 }
 
 /* ===== Product Image Gallery ===== */
