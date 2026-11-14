@@ -38,6 +38,7 @@ from app.schemas import (
 from app.services.cart import CartService
 from app.services.catalogue import CatalogueService
 from app.services.inventory import InventoryService
+from app.services.messaging import notify_order_status
 from app.services.notifications import NotificationService
 from app.services.pricing import PriceCalculator
 from app.services.promotions import PromotionService
@@ -288,6 +289,8 @@ class OrderService:
         self._cart.clear_cart(user_id)
         self.db.flush()
 
+        self._notify_customer(order, "placed")
+
         return self._build_order_read(order)
 
     def _create_status_history(
@@ -307,6 +310,13 @@ class OrderService:
         )
         self.db.add(history)
         self.db.flush()
+
+    def _notify_customer(self, order: Order, status: str) -> None:
+        """Best-effort SMS/WhatsApp update; never raises."""
+        user = self.db.get(User, order.user_id)
+        if not user or not user.mobile_number:
+            return
+        notify_order_status(user.mobile_number, order.order_number, status)
 
     def change_status(
         self,
@@ -335,9 +345,10 @@ class OrderService:
                 f"Order {order.order_number} has been delivered.",
                 order_id=order_id,
             )
-
         self._create_status_history(order_id, current, new_status, changed_by, reason)
+
         self.db.flush()
+        self._notify_customer(order, new_status.value)
         return self._build_order_read(order)
 
     def confirm_order(
@@ -372,6 +383,7 @@ class OrderService:
             order_id=order_id,
         )
         self.db.flush()
+        self._notify_customer(order, "confirmed")
         return self._build_order_read(order)
 
     def _reduce_stock_for_order(self, order: Order) -> None:
@@ -424,6 +436,7 @@ class OrderService:
             order_id, previous_status, OrderStatus.cancelled, cancelled_by, reason
         )
         self.db.flush()
+        self._notify_customer(order, "cancelled")
         return self._build_order_read(order)
 
     def get_order_detail(self, order_id: UUID) -> OrderRead:
