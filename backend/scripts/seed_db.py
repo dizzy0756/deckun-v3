@@ -319,6 +319,12 @@ SAMPLE_CONTENT = [
         "is_active": True,
     },
     {
+        "content_key": "contact.instagram",
+        "content_type": "text",
+        "text_value": "deckun",
+        "is_active": True,
+    },
+    {
         "content_key": "footer.tagline",
         "content_type": "text",
         "text_value": "Gear built for adventure.",

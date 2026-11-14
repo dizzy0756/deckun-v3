@@ -225,3 +225,37 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     height: 100%;
   }
 }
+
+/* About page contact icons */
+.contact-icons {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.contact-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-alt);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border);
+  transition: var(--transition);
+}
+
+.contact-icon:hover,
+.contact-icon:focus-visible {
+  background: var(--color-primary);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.contact-icon svg {
+  width: 24px;
+  height: 24px;
+}
