@@ -10,6 +10,7 @@ import { renderOrders } from './views/orders.js';
 import { renderOrderDetail } from './views/order-detail.js';
 import { renderAbout } from './views/about.js';
 import { renderContact } from './views/contact.js';
+import { renderTerms } from './views/terms.js';
 
 const cartBadge = document.getElementById('cart-badge');
 const mobileNavLinks = document.querySelectorAll('.mobile-nav a');
@@ -138,6 +139,9 @@ async function router() {
     } else if (hash.startsWith('#contact')) {
       restoreDefaultMeta();
       await renderContact(appEl);
+    } else if (hash.startsWith('#terms')) {
+      restoreDefaultMeta();
+      await renderTerms(appEl);
     } else {
       restoreDefaultMeta();
       await renderHome(appEl);
@@ -212,6 +216,8 @@ function run() {
             await renderAbout(appEl);
           } else if (hash.startsWith('#contact')) {
             await renderContact(appEl);
+          } else if (hash.startsWith('#terms')) {
+            await renderTerms(appEl);
           } else {
             await renderHome(appEl);
           }

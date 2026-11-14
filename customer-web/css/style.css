@@ -105,17 +105,20 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   .site-footer { padding: 3rem 1rem 2rem; }
 }
 
-/* Mobile: surface About / Contact in the footer since the bottom nav omits them */
+/* Mobile: surface About / Contact / Terms in the footer since the bottom nav omits them */
 @media (max-width: 767px) {
   .footer-links-mobile {
     display: flex;
-    gap: 1.5rem;
-    margin-top: 0.5rem;
-    font-weight: 600;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
   }
   .footer-links-mobile a {
     color: #ffffff;
-    opacity: 0.9;
+    opacity: 0.75;
   }
   .footer-links-mobile a:hover,
   .footer-links-mobile a:focus-visible {
