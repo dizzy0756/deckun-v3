@@ -64,6 +64,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   margin-bottom: 1.5rem;
 }
 
+.auth-logo-img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 0.75rem;
+}
+
 .auth-logo h1 {
   font-family: var(--font-heading);
   font-size: 1.5rem;
@@ -75,6 +83,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .header-inner { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; max-width: 1200px; margin: 0 auto; }
 .logo { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-heading); font-weight: 700; font-size: 1.25rem; letter-spacing: 0.02em; }
 .logo-mark { width: 36px; height: 36px; background: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-family: var(--font-heading); }
+.logo-img { width: 36px; height: 36px; object-fit: contain; display: block; flex-shrink: 0; }
+.logo-img-sm { width: 28px; height: 28px; }
 .header-actions { display: flex; align-items: center; gap: 0.5rem; }
 .icon-btn { width: var(--touch-min); height: var(--touch-min); display: flex; align-items: center; justify-content: center; border-radius: 50%; position: relative; }
 
