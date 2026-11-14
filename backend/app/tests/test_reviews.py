@@ -12,82 +12,84 @@ from app.tests.conftest import (
 
 
 class TestReviews:
-    def test_review_requires_delivered_order(self, client, db):
+    def test_any_account_can_review(self, client, db):
+        """Any registered customer may review a product, even without a purchase."""
         ensure_low_stock_setting(db)
-        create_admin(db, email="admin@test.com", password="admin123")
-        admin_token = get_admin_token(client)
-
-        user = create_user(db, mobile="9876543210")
-        token = get_customer_token(client, "9876543210")
         cat = create_category(db)
         prod = create_product(db, slug="review-prod", category_id=cat.id)
-        create_variant(db, prod.id, sku="R-001", price=500, stock=5)
-        addr = create_address(db, user.id)
 
-        # Add to cart, checkout, confirm, deliver
-        client.post(
-            "/api/cart/items",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"product_slug": "review-prod", "variant_sku": "R-001", "quantity": 1},
-        )
-        checkout_resp = client.post(
-            "/api/orders/checkout",
-            headers={"Authorization": f"Bearer {token}"},
-            json={"shipping_address_id": str(addr.id), "payment_method": "cod"},
-        )
-        order_id = checkout_resp.json()["order"]["id"]
-        order_item_id = checkout_resp.json()["order"]["items"][0]["id"]
+        create_user(db, mobile="9876543210")
+        token = get_customer_token(client, "9876543210")
 
-        # Try to review before delivered — should fail
+        # Signed-in customer with no order can review
         resp = client.post(
             "/api/reviews/",
             headers={"Authorization": f"Bearer {token}"},
             json={
                 "product_id": str(prod.id),
-                "order_item_id": str(order_item_id),
                 "rating": 5,
-                "comment": "Great product!",
-            },
-        )
-        assert resp.status_code == 400
-
-        # Deliver the order
-        client.post(
-            f"/api/admin/orders/{order_id}/confirm",
-            headers={"Authorization": f"Bearer {admin_token}"},
-            json={"delivery_fee": 0},
-        )
-        client.patch(
-            f"/api/admin/orders/{order_id}/status",
-            headers={"Authorization": f"Bearer {admin_token}"},
-            json={"status": "preparing"},
-        )
-        client.patch(
-            f"/api/admin/orders/{order_id}/status",
-            headers={"Authorization": f"Bearer {admin_token}"},
-            json={"status": "out_for_delivery"},
-        )
-        client.patch(
-            f"/api/admin/orders/{order_id}/status",
-            headers={"Authorization": f"Bearer {admin_token}"},
-            json={"status": "delivered"},
-        )
-
-        # Now review should work
-        resp = client.post(
-            "/api/reviews/",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "product_id": str(prod.id),
-                "order_item_id": str(order_item_id),
-                "rating": 5,
-                "title": "Amazing",
-                "comment": "Loved it!",
+                "title": "Great product!",
+                "comment": "Works exactly as described.",
             },
         )
         assert resp.status_code == 200
         assert resp.json()["rating"] == 5
         assert resp.json()["status"] == "pending"
+
+    def test_review_requires_account(self, client, db):
+        ensure_low_stock_setting(db)
+        cat = create_category(db)
+        prod = create_product(db, slug="anon-prod", category_id=cat.id)
+
+        resp = client.post(
+            "/api/reviews/",
+            json={
+                "product_id": str(prod.id),
+                "rating": 4,
+                "comment": "Anonymous attempt",
+            },
+        )
+        assert resp.status_code == 401
+
+    def test_review_rejects_foreign_order_item(self, client, db):
+        """A supplied order_item_id must belong to the reviewer."""
+        ensure_low_stock_setting(db)
+        create_admin(db, email="admin@test.com", password="admin123")
+        admin_token = get_admin_token(client)
+
+        buyer = create_user(db, mobile="9876543210")
+        token_buyer = get_customer_token(client, "9876543210")
+        other = create_user(db, mobile="8888888888")
+        token_other = get_customer_token(client, "8888888888")
+
+        cat = create_category(db)
+        prod = create_product(db, slug="foreign-prod", category_id=cat.id)
+        create_variant(db, prod.id, sku="FR-001", price=500, stock=5)
+        addr = create_address(db, buyer.id)
+
+        client.post(
+            "/api/cart/items",
+            headers={"Authorization": f"Bearer {token_buyer}"},
+            json={"product_slug": "foreign-prod", "variant_sku": "FR-001", "quantity": 1},
+        )
+        checkout = client.post(
+            "/api/orders/checkout",
+            headers={"Authorization": f"Bearer {token_buyer}"},
+            json={"shipping_address_id": str(addr.id), "payment_method": "cod"},
+        )
+        foreign_item_id = checkout.json()["order"]["items"][0]["id"]
+
+        resp = client.post(
+            "/api/reviews/",
+            headers={"Authorization": f"Bearer {token_other}"},
+            json={
+                "product_id": str(prod.id),
+                "order_item_id": str(foreign_item_id),
+                "rating": 5,
+                "comment": "Trying to use someone else's order",
+            },
+        )
+        assert resp.status_code == 400
 
     def test_duplicate_review_prevented(self, client, db):
         ensure_low_stock_setting(db)

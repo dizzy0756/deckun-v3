@@ -15,22 +15,6 @@ class ReviewService:
     def __init__(self, db: Session) -> None:
         self.db = db
 
-    def can_review(self, user_id: UUID, order_item_id: UUID) -> bool:
-        order_item = self.db.get(OrderItem, order_item_id)
-        if not order_item:
-            return False
-        order = self.db.get(Order, order_item.order_id)
-        if not order or order.user_id != user_id:
-            return False
-        if order.status != OrderStatus.delivered:
-            return False
-        existing = self.db.scalar(
-            select(Review).where(
-                Review.user_id == user_id, Review.order_item_id == order_item_id
-            )
-        )
-        return existing is None
-
     def create_review(self, user_id: UUID, data: ReviewCreate) -> ReviewRead:
         product = self.db.get(Product, data.product_id)
         if not product:
@@ -46,19 +30,27 @@ class ReviewService:
                 status_code=409, detail="You have already reviewed this product"
             )
 
-        if not self.can_review(user_id, data.order_item_id):
-            raise HTTPException(
-                status_code=400,
-                detail="You can only review products from delivered orders",
-            )
+        # Any registered customer may review. When an order item is supplied we
+        # still verify it belongs to this user so the link can't be spoofed.
+        order_item_id = data.order_item_id
+        if order_item_id:
+            order_item = self.db.get(OrderItem, order_item_id)
+            if not order_item:
+                raise HTTPException(status_code=400, detail="Order item not found")
+            order = self.db.get(Order, order_item.order_id)
+            if not order or order.user_id != user_id:
+                raise HTTPException(
+                    status_code=400, detail="Order item does not belong to you"
+                )
 
         review = Review(
             user_id=user_id,
             product_id=data.product_id,
-            order_item_id=data.order_item_id,
+            order_item_id=order_item_id,
             rating=data.rating,
             title=data.title,
             comment=data.comment,
+            image_url=data.image_url,
             status=ReviewStatus.pending,
         )
         self.db.add(review)
@@ -84,10 +76,46 @@ class ReviewService:
             rating=review.rating,
             title=review.title,
             comment=review.comment,
+            image_url=review.image_url,
             status=review.status,
             created_at=review.created_at,
             updated_at=review.updated_at,
         )
+
+    def review_eligibility(self, user_id: UUID, product_id: UUID) -> dict:
+        """Any registered customer may review a product, once."""
+        existing = self.db.scalar(
+            select(Review).where(
+                Review.user_id == user_id, Review.product_id == product_id
+            )
+        )
+        if existing:
+            return {
+                "can_review": False,
+                "already_reviewed": True,
+                "order_item_id": None,
+                "reason": "You have already reviewed this product",
+            }
+
+        # Link to a delivered purchase when one exists; it is optional.
+        purchased_item = self.db.scalar(
+            select(OrderItem)
+            .join(Order, Order.id == OrderItem.order_id)
+            .where(
+                Order.user_id == user_id,
+                OrderItem.product_id == product_id,
+                Order.status == OrderStatus.delivered,
+            )
+            .order_by(OrderItem.id)
+            .limit(1)
+        )
+
+        return {
+            "can_review": True,
+            "already_reviewed": False,
+            "order_item_id": purchased_item.id if purchased_item else None,
+            "reason": None,
+        }
 
     def get_product_reviews(
         self, product_id: UUID, status: ReviewStatus = ReviewStatus.approved

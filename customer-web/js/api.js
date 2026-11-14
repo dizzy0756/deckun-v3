@@ -53,7 +53,13 @@ class API {
   }
 
   get(path) { return this.request(path); }
-  post(path, body) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); }
+  post(path, body) {
+    const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
+    return this.request(path, {
+      method: 'POST',
+      body: isForm ? body : JSON.stringify(body),
+    });
+  }
   put(path, body) { return this.request(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) }); }
   delete(path, body) { return this.request(path, { method: 'DELETE', body: body === undefined ? undefined : JSON.stringify(body) }); }
 }

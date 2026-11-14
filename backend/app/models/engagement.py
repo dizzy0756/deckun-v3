@@ -32,12 +32,15 @@ class Review(Base):
     product_id: Mapped[UUID] = mapped_column(
         ForeignKey("products.id", ondelete="RESTRICT"), nullable=False
     )
-    order_item_id: Mapped[UUID] = mapped_column(
-        ForeignKey("order_items.id", ondelete="RESTRICT"), nullable=False
+    order_item_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("order_items.id", ondelete="RESTRICT"),
+        nullable=True,
+        default=None,
     )
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str | None] = mapped_column(String(255), default=None)
     comment: Mapped[str] = mapped_column(String, nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String, default=None)
     status: Mapped[ReviewStatus] = mapped_column(
         Enum(ReviewStatus, name="review_status", native_enum=False),
         default=ReviewStatus.pending,

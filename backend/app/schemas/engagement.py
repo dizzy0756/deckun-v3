@@ -14,10 +14,11 @@ class ReviewRead(BaseModel):
     user_full_name: str
     product_id: UUID
     product_name: str
-    order_item_id: UUID
+    order_item_id: UUID | None = None
     rating: int
     title: str | None = None
     comment: str
+    image_url: str | None = None
     status: ReviewStatus
     created_at: datetime
     updated_at: datetime | None = None
@@ -25,16 +26,25 @@ class ReviewRead(BaseModel):
 
 class ReviewCreate(BaseModel):
     product_id: UUID
-    order_item_id: UUID
+    order_item_id: UUID | None = None
     rating: int
     title: str | None = None
     comment: str
+    image_url: str | None = None
 
     @field_validator("rating")
     @classmethod
     def validate_rating(cls, v: int) -> int:
         if not 1 <= v <= 5:
             raise ValueError("Rating must be between 1 and 5")
+        return v
+
+    @field_validator("comment")
+    @classmethod
+    def validate_comment(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Review comment is required")
         return v
 
 
