@@ -78,7 +78,16 @@ function renderProductDetailContent(product) {
     return "₹" + Number(amount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const imageUrl = product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop');
+  const placeholder = 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop';
+  const images = [];
+  if (product.images && product.images.length) {
+    images.push(...product.images.map((img) => img.url));
+  }
+  if (product.primary_image_url && !images.includes(product.primary_image_url)) {
+    images.unshift(product.primary_image_url);
+  }
+  if (!images.length) images.push(placeholder);
+  const galleryImages = images.filter(Boolean).slice(0, 3);
 
   app.innerHTML = `
     <section class="section">
@@ -89,7 +98,24 @@ function renderProductDetailContent(product) {
 
       <div class="product-detail-grid">
         <div>
-          <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.name)}" style="width:100%; border-radius:var(--radius); box-shadow:var(--shadow);" loading="lazy" />
+          <div class="product-gallery">
+            <div class="gallery-main">
+              <img src="${escapeHtml(galleryImages[0])}" alt="${escapeHtml(product.name)}" id="gallery-main-img" class="gallery-main-img" />
+              <div class="gallery-nav">
+                <button type="button" class="gallery-nav-btn" id="gallery-prev" aria-label="Previous image">&#8249;</button>
+                <button type="button" class="gallery-nav-btn" id="gallery-next" aria-label="Next image">&#8250;</button>
+              </div>
+              <div class="gallery-dots">
+                ${galleryImages.map((_, i) => `<span class="gallery-dot${i === 0 ? ' active' : ''}" data-index="${i}"></span>`).join("")}
+              </div>
+            </div>
+            <div class="gallery-thumbs">
+              ${galleryImages.map((img, i) => `
+                <img src="${escapeHtml(img)}" alt="${escapeHtml(product.name)} image ${i + 1}"
+                     class="gallery-thumb${i === 0 ? ' active' : ''}" data-index="${i}" loading="lazy" />
+              `).join("")}
+            </div>
+          </div>
         </div>
         <div>
           <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.5rem;">${escapeHtml(product.name)}</h1>
@@ -133,6 +159,36 @@ function renderProductDetailContent(product) {
       </div>
     </section>
   `;
+
+  // Gallery navigation (arrows, dots, thumbnails, touch swipe)
+  const mainImg = app.querySelector("#gallery-main-img");
+  const prevBtn = app.querySelector("#gallery-prev");
+  const nextBtn = app.querySelector("#gallery-next");
+  const dots = app.querySelectorAll(".gallery-dot");
+  const thumbs = app.querySelectorAll(".gallery-thumb");
+  let index = 0;
+
+  const show = (i) => {
+    index = ((i % galleryImages.length) + galleryImages.length) % galleryImages.length;
+    if (mainImg) mainImg.src = galleryImages[index];
+    dots.forEach((d, di) => d.classList.toggle("active", di === index));
+    thumbs.forEach((t, ti) => t.classList.toggle("active", ti === index));
+  };
+
+  prevBtn?.addEventListener("click", () => show(index - 1));
+  nextBtn?.addEventListener("click", () => show(index + 1));
+  dots.forEach((d) => d.addEventListener("click", () => show(Number(d.dataset.index))));
+  thumbs.forEach((t) => t.addEventListener("click", () => show(Number(t.dataset.index))));
+
+  let startX = null;
+  mainImg?.addEventListener("touchstart", (e) => { startX = e.touches[0].clientX; });
+  mainImg?.addEventListener("touchend", (e) => {
+    if (startX == null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx > 50) show(index - 1);
+    else if (dx < -50) show(index + 1);
+    startX = null;
+  });
 }
 
 function escapeHtml(text) {
