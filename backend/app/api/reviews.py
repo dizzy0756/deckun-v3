@@ -1,12 +1,13 @@
 import os
 import uuid as uuid_lib
-from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_current_user, get_db
+from app.core.media import media_base_url
+from app.core.paths import REVIEW_MEDIA_DIR
 from app.models import AdminUser, User
 from app.models.enums import ReviewStatus
 from app.schemas import ReviewCreate, ReviewRead, ReviewStatusChange
@@ -47,7 +48,7 @@ async def upload_review_image(
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
-    target_dir = Path("public/images/reviews")
+    target_dir = REVIEW_MEDIA_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
 
     unique_name = f"{uuid_lib.uuid4().hex}{ext}"
@@ -58,7 +59,7 @@ async def upload_review_image(
     with open(target_dir / unique_name, "wb") as fh:
         fh.write(contents)
 
-    base_url = str(request.base_url).rstrip("/")
+    base_url = media_base_url(request)
     return {"url": f"{base_url}/images/reviews/{unique_name}"}
 
 

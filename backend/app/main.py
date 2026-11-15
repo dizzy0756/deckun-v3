@@ -13,13 +13,14 @@ from app.api.pincodes import router as pincodes_router
 from app.api.promotions import router as promotions_router
 from app.api.reviews import router as reviews_router
 from app.core.config import settings
+from app.core.paths import MEDIA_DIR, PRODUCT_MEDIA_DIR, REVIEW_MEDIA_DIR
 
 app = FastAPI(title="Deckun Backend", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,10 +36,10 @@ app.include_router(promotions_router)
 app.include_router(notifications_router)
 app.include_router(admin_router)
 
-# Serve product images
-import os
-os.makedirs("public/images/products", exist_ok=True)
-app.mount("/images", StaticFiles(directory="public/images"), name="images")
+# Serve uploaded media (product + review images)
+PRODUCT_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+REVIEW_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/images", StaticFiles(directory=str(MEDIA_DIR)), name="images")
 
 
 @app.get("/health")

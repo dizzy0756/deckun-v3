@@ -1,4 +1,8 @@
-﻿const API_BASE = 'http://127.0.0.1:65433/api';
+﻿const API_BASE = (() => {
+  const meta = document.querySelector('meta[name="api-base"]');
+  const fromMeta = meta && meta.content ? meta.content.trim() : '';
+  return (fromMeta || 'http://127.0.0.1:65433/api').replace(/\/+$/, '');
+})();
 
 class API {
   constructor() {

@@ -8,6 +8,8 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
+from app.core.media import media_base_url
+from app.core.paths import PRODUCT_MEDIA_DIR
 from app.models import (
     Category,
     Product,
@@ -140,7 +142,7 @@ def list_products(
         stmt = stmt.where(Product.status == status)
     stmt = stmt.offset(skip).limit(limit)
     results = db.execute(stmt).all()
-    return [_to_product_read(db, p, str(request.base_url).rstrip('/')) for p, _ in results]
+    return [_to_product_read(db, p, media_base_url(request)) for p, _ in results]
 
 
 @router.post("/", response_model=ProductRead)
@@ -220,7 +222,7 @@ def get_product(request: Request, product_id: UUID, db: Session = Depends(get_db
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return CatalogueService(db).get_product_by_slug(product.slug, str(request.base_url).rstrip('/'))
+    return CatalogueService(db).get_product_by_slug(product.slug, media_base_url(request))
 
 
 @router.patch("/{product_id}", response_model=ProductRead)
@@ -293,7 +295,8 @@ async def upload_image(
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
     unique_name = f"{uuid_lib.uuid4().hex}{ext}"
-    file_path = Path("public/images/products") / unique_name
+    PRODUCT_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    file_path = PRODUCT_MEDIA_DIR / unique_name
 
     # Save file to disk
     contents = await file.read()
@@ -301,7 +304,7 @@ async def upload_image(
         f.write(contents)
 
     # Build public URL with full backend host
-    base_url = str(request.base_url).rstrip("/")
+    base_url = media_base_url(request)
     image_url = f"{base_url}/images/products/{unique_name}"
 
     # Determine sort_order (next available)

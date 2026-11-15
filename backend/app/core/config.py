@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     ADMIN_TOKEN_EXPIRE_MINUTES: int = 60
     CORS_ORIGINS: list[str] = ["*"]
 
+    # Public base URL of this API (used to build absolute media links).
+    # Example: https://api.deckun.in
+    PUBLIC_BASE_URL: str = ""
+
     # Customer SMS/WhatsApp notifications.
     # provider: noop (log only) | whatsapp | msg91 | twilio
     MESSAGING_PROVIDER: str = "noop"
