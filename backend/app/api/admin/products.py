@@ -1,7 +1,6 @@
 from uuid import UUID
 import os
 import uuid as uuid_lib
-from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from sqlalchemy import delete, select
@@ -9,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.media import media_base_url
-from app.core.paths import PRODUCT_MEDIA_DIR
+from app.services.storage import save_media
 from app.models import (
     Category,
     Product,
@@ -295,17 +294,14 @@ async def upload_image(
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
     unique_name = f"{uuid_lib.uuid4().hex}{ext}"
-    PRODUCT_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-    file_path = PRODUCT_MEDIA_DIR / unique_name
-
-    # Save file to disk
     contents = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(contents)
-
-    # Build public URL with full backend host
-    base_url = media_base_url(request)
-    image_url = f"{base_url}/images/products/{unique_name}"
+    image_url = save_media(
+        contents,
+        unique_name,
+        "products",
+        file.content_type,
+        media_base_url(request),
+    )
 
     # Determine sort_order (next available)
     max_sort = db.scalar(

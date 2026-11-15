@@ -5,6 +5,8 @@ import { renderCart } from './views/cart.js';
 import { renderCheckout } from './views/checkout.js';
 import { renderLogin } from './views/login.js';
 import { renderRegister } from './views/register.js';
+import { renderForgotPassword } from './views/forgot-password.js';
+import { renderResetPassword } from './views/reset-password.js';
 import { renderAccount } from './views/account.js';
 import { renderOrders } from './views/orders.js';
 import { renderOrderDetail } from './views/order-detail.js';
@@ -123,6 +125,12 @@ async function router() {
     } else if (hash.startsWith('#register')) {
       restoreDefaultMeta();
       await renderRegister(appEl);
+    } else if (hash.startsWith('#forgot')) {
+      restoreDefaultMeta();
+      await renderForgotPassword(appEl);
+    } else if (hash.startsWith('#reset')) {
+      restoreDefaultMeta();
+      await renderResetPassword(appEl);
     } else if (hash.startsWith('#account')) {
       restoreDefaultMeta();
       await renderAccount(appEl);
@@ -176,6 +184,21 @@ function init() {
   }
 }
 
+
+// Swap the bundled logo for the branding URL stored in website content (e.g. R2).
+async function applySiteLogo() {
+  try {
+    const content = await api.get('/content/');
+    const url = content && content['site.logo_url'] ? content['site.logo_url'].text_value : '';
+    if (!url) return;
+    document.querySelectorAll('img[data-site-logo]').forEach((img) => {
+      img.src = url;
+    });
+  } catch (e) {
+    /* keep bundled logo */
+  }
+}
+
 function run() {
   try {
     init();
@@ -205,6 +228,10 @@ function run() {
             await renderLogin(appEl);
           } else if (hash.startsWith('#register')) {
             await renderRegister(appEl);
+          } else if (hash.startsWith('#forgot')) {
+            await renderForgotPassword(appEl);
+          } else if (hash.startsWith('#reset')) {
+            await renderResetPassword(appEl);
           } else if (hash.startsWith('#account')) {
             await renderAccount(appEl);
           } else if (hash.startsWith('#orders/') && hash.split('/').length > 1) {
@@ -233,6 +260,8 @@ function run() {
     console.error('Run error:', e);
   }
 }
+applySiteLogo();
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', run);
 } else {

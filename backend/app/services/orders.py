@@ -41,7 +41,9 @@ from app.services.inventory import InventoryService
 from app.services.messaging import notify_order_status
 from app.services.notifications import NotificationService
 from app.services.pricing import PriceCalculator
+from app.core.config import settings
 from app.services.promotions import PromotionService
+from app.services import razorpay_service
 
 
 class OrderService:
@@ -109,6 +111,81 @@ class OrderService:
                 )
         base_price = self._validate_cart_item(product, variant)
         return product, variant, base_price
+
+    # --- Online payments (Razorpay) ---
+    def get_payment(self, order_id: UUID) -> Payment | None:
+        return self.db.scalar(select(Payment).where(Payment.order_id == order_id))
+
+    def start_online_payment(self, order_id: UUID, user_id: UUID) -> dict:
+        order = self.db.get(Order, order_id)
+        if not order or order.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Order not found")
+        if order.payment_method != PaymentMethod.online:
+            raise HTTPException(status_code=400, detail="Order is not an online-payment order")
+        if order.payment_status == PaymentStatus.paid:
+            raise HTTPException(status_code=400, detail="Order is already paid")
+
+        payment = self.get_payment(order_id)
+        if not payment:
+            payment = Payment(
+                order_id=order.id,
+                amount=order.total_amount,
+                currency="INR",
+                status=PaymentStatus.pending,
+            )
+            self.db.add(payment)
+            self.db.flush()
+
+        if not payment.razorpay_order_id:
+            created = razorpay_service.create_order(
+                order.total_amount, order.order_number
+            )
+            if not created:
+                raise HTTPException(status_code=503, detail="Payment gateway unavailable")
+            payment.razorpay_order_id = created["id"]
+            self.db.flush()
+
+        return {
+            "order_id": str(order.id),
+            "order_number": order.order_number,
+            "razorpay_order_id": payment.razorpay_order_id,
+            "razorpay_key_id": settings.RAZORPAY_KEY_ID,
+            "amount": int(round(float(order.total_amount) * 100)),
+            "currency": "INR",
+            "name": "Deckun",
+        }
+
+    def verify_online_payment(
+        self,
+        order_id: UUID,
+        user_id: UUID,
+        razorpay_order_id: str,
+        razorpay_payment_id: str,
+        signature: str,
+    ) -> OrderRead:
+        order = self.db.get(Order, order_id)
+        if not order or order.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        payment = self.get_payment(order_id)
+        if not payment or payment.razorpay_order_id != razorpay_order_id:
+            raise HTTPException(status_code=400, detail="Payment does not match this order")
+
+        if not razorpay_service.verify_signature(
+            razorpay_order_id, razorpay_payment_id, signature
+        ):
+            payment.status = PaymentStatus.failed
+            self.db.flush()
+            raise HTTPException(status_code=400, detail="Payment verification failed")
+
+        payment.status = PaymentStatus.paid
+        payment.razorpay_payment_id = razorpay_payment_id
+        payment.method = "razorpay"
+        payment.paid_at = datetime.now(UTC).replace(tzinfo=None)
+        order.payment_status = PaymentStatus.paid
+        self.db.flush()
+
+        return self._build_order_read(order)
 
     def _build_order_read(self, order: Order) -> OrderRead:
         user = self.db.get(User, order.user_id)

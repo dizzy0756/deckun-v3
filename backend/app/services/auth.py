@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import (
     create_customer_token,
     get_password_hash,
@@ -14,6 +15,7 @@ from app.core.security import (
 )
 from app.models import Address, AdminUser, Cart, PasswordReset, User
 from app.models.enums import OtpType
+from app.services.email import send_email
 from app.schemas import (
     AddressCreate,
     AddressRead,
@@ -208,6 +210,23 @@ class AuthService:
         )
         self.db.add(reset)
         self.db.flush()
+
+        if user.email:
+            site = settings.CUSTOMER_SITE_URL.rstrip("/")
+            reset_link = f"{site}/#reset?token={token}"
+            send_email(
+                user.email,
+                "Reset your Deckun password",
+                (
+                    f"Hi {user.full_name},\n\n"
+                    "We received a request to reset your Deckun password.\n"
+                    f"Open this link to choose a new password (valid for 15 minutes):\n\n"
+                    f"{reset_link}\n\n"
+                    f"If the link does not work, paste this code on the reset page:\n{token}\n\n"
+                    "If you did not request this, you can safely ignore this email."
+                ),
+            )
+
         return token
 
     def reset_password(self, token: str, new_password: str) -> bool:

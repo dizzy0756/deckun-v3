@@ -20,6 +20,9 @@ export async function renderLogin(app) {
           <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
           <div id="login-error" style="color:var(--color-error); font-size:0.875rem; min-height:1.1rem;"></div>
         </form>
+        <p style="text-align:center; margin-top:1rem;">
+          <a href="#forgot" style="color:var(--color-primary); font-size:0.875rem;">Forgot password?</a>
+        </p>
         <p style="text-align:center; margin-top:1.5rem; color:var(--color-text-muted);">
           Don't have an account?
           <a href="#register" style="color:var(--color-primary);">Register</a>

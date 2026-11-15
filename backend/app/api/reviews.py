@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_current_user, get_db
 from app.core.media import media_base_url
-from app.core.paths import REVIEW_MEDIA_DIR
+from app.services.storage import save_media
 from app.models import AdminUser, User
 from app.models.enums import ReviewStatus
 from app.schemas import ReviewCreate, ReviewRead, ReviewStatusChange
@@ -48,19 +48,19 @@ async def upload_review_image(
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail="Unsupported image format")
 
-    target_dir = REVIEW_MEDIA_DIR
-    target_dir.mkdir(parents=True, exist_ok=True)
-
     unique_name = f"{uuid_lib.uuid4().hex}{ext}"
     contents = await file.read()
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Image must be 5MB or smaller")
 
-    with open(target_dir / unique_name, "wb") as fh:
-        fh.write(contents)
-
-    base_url = media_base_url(request)
-    return {"url": f"{base_url}/images/reviews/{unique_name}"}
+    url = save_media(
+        contents,
+        unique_name,
+        "reviews",
+        file.content_type,
+        media_base_url(request),
+    )
+    return {"url": url}
 
 
 @router.post("/", response_model=ReviewRead)

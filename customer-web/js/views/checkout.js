@@ -125,6 +125,15 @@ export async function renderCheckout(app) {
           <div id="summary-lines" style="font-size:0.875rem;color:var(--color-text-muted);margin-bottom:0.5rem;">
             ${cart.map((i) => `<div style="display:flex;justify-content:space-between;"><span>${escapeHtml(i.name)} ×${i.quantity}</span><span>${rupee(Number(i.price) * i.quantity)}</span></div>`).join("")}
           </div>
+          <div class="form-group" id="paymethod-group" style="display:none;">
+            <label>Payment method</label>
+            <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+              <input type="radio" name="paymethod" value="cod" checked /> Cash on Delivery
+            </label>
+            <label style="display:flex;align-items:center;gap:0.5rem;">
+              <input type="radio" name="paymethod" value="online" /> Pay online (UPI / Card)
+            </label>
+          </div>
           <div class="form-group">
             <label>Promo Code</label>
             <div style="display:flex;gap:0.5rem;">
@@ -144,7 +153,7 @@ export async function renderCheckout(app) {
           </div>
         </div>
 
-        <button id="place-order" class="btn btn-primary" style="width:100%; margin-top:1rem;">Place Order (COD)</button>
+        <button id="place-order" class="btn btn-primary" style="width:100%; margin-top:1rem;">Place Order</button>
         <div id="checkout-error" class="error-text" style="margin-top:0.75rem;"></div>
       </div>
     </section>
@@ -265,6 +274,65 @@ export async function renderCheckout(app) {
     }
   };
 
+  /* Online payments are offered only when Razorpay is configured */
+  let onlineEnabled = false;
+  try {
+    const cfg = await api.get('/orders/payment-config');
+    onlineEnabled = !!cfg.enabled;
+  } catch (e) {
+    onlineEnabled = false;
+  }
+  if (onlineEnabled) {
+    const group = document.getElementById('paymethod-group');
+    if (group) group.style.display = 'block';
+  }
+
+  const finishOrder = (orderId, number) => {
+    localStorage.removeItem('deckun_cart');
+    document.dispatchEvent(new Event('cart-updated'));
+    alert(`Order placed: ${number}`);
+    window.location.hash = `#orders/${orderId}`;
+  };
+
+  const loadRazorpay = () =>
+    new Promise((resolve, reject) => {
+      if (window.Razorpay) return resolve();
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Could not load the payment gateway'));
+      document.body.appendChild(script);
+    });
+
+  const startRazorpay = async (order) => {
+    const intent = await api.post(`/orders/${order.id}/payment/intent`, {});
+    await loadRazorpay();
+    return new Promise((resolve, reject) => {
+      const rzp = new window.Razorpay({
+        key: intent.razorpay_key_id,
+        amount: intent.amount,
+        currency: intent.currency,
+        name: intent.name || 'Deckun',
+        description: `Order ${intent.order_number}`,
+        order_id: intent.razorpay_order_id,
+        handler: async (response) => {
+          try {
+            await api.post(`/orders/${order.id}/payment/verify`, {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: { ondismiss: () => reject(new Error('Payment cancelled')) },
+      });
+      rzp.open();
+    });
+  };
+
   document.getElementById('place-order').onclick = async () => {
     errBox.textContent = '';
     const btn = document.getElementById('place-order');
@@ -275,28 +343,33 @@ export async function renderCheckout(app) {
       return;
     }
 
+    const methodEl = document.querySelector('input[name="paymethod"]:checked');
+    const method = methodEl ? methodEl.value : 'cod';
+
     btn.disabled = true;
-    btn.textContent = 'Placing order…';
+    btn.textContent = 'Placing order...';
 
     try {
       await syncCartToServer();
       const res = await api.post('/orders/checkout', {
         shipping_address_id: selected.value,
-        payment_method: 'cod',
+        payment_method: method,
         customer_note: null,
         promotion_code: appliedCode,
       });
 
-      localStorage.removeItem('deckun_cart');
-      document.dispatchEvent(new Event('cart-updated'));
-
       const order = res.order || res;
-      alert(`Order placed: ${order.order_number}`);
-      window.location.hash = `#orders/${order.id}`;
+
+      if (method === 'online') {
+        btn.textContent = 'Opening payment...';
+        await startRazorpay(order);
+      }
+
+      finishOrder(order.id, order.order_number);
     } catch (err) {
       errBox.textContent = 'Could not place order: ' + err.message;
       btn.disabled = false;
-      btn.textContent = 'Place Order (COD)';
+      btn.textContent = 'Place Order';
     }
   };
 

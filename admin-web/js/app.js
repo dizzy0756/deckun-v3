@@ -36,6 +36,20 @@ const VIEWS = {
   customers: () => import("./views/customers.js"),
 };
 
+
+async function applySiteLogo() {
+  try {
+    const content = await api.get('/api/content/');
+    const url = content && content['site.logo_url'] ? content['site.logo_url'].text_value : '';
+    if (!url) return;
+    document.querySelectorAll('img[data-site-logo]').forEach((img) => {
+      img.src = url;
+    });
+  } catch (e) {
+    /* keep bundled logo */
+  }
+}
+
 function initNav() {
   const sidebar = document.getElementById("nav-list");
   const bottomNav = document.getElementById("bottom-nav");
@@ -281,6 +295,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNav();
   initNotifications();
   render();
+  applySiteLogo();
 
   document.getElementById("settings-btn")?.addEventListener("click", () => {
     window.location.hash = "#settings";
