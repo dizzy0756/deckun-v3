@@ -150,6 +150,38 @@ def list_products(
     return [_to_product_read(db, p, media_base_url(request)) for p, _ in results]
 
 
+def _unique_sku(db: Session, base: str) -> str:
+    """Return a SKU derived from the slug that is not already taken."""
+    candidate = (base or "SKU").upper().replace(" ", "-")
+    suffix = 1
+    while db.scalar(select(ProductVariant.id).where(ProductVariant.sku == candidate)):
+        suffix += 1
+        candidate = f"{base.upper().replace(' ', '-')}-{suffix}"
+    return candidate
+
+
+def _ensure_default_variant(db: Session, product: Product) -> None:
+    """Guarantee a single variant so the product is manageable in inventory."""
+    variants = db.scalars(
+        select(ProductVariant).where(ProductVariant.product_id == product.id)
+    ).all()
+    if len(variants) == 1:
+        variants[0].price = product.base_price or 0
+        return
+    if len(variants) == 0:
+        db.add(
+            ProductVariant(
+                product_id=product.id,
+                sku=_unique_sku(db, product.slug),
+                name="Default",
+                price=product.base_price or 0,
+                stock=0,
+                is_active=True,
+            )
+        )
+        db.flush()
+
+
 @router.post("/", response_model=ProductRead)
 def create_product(
     payload: ProductCreate,
@@ -192,6 +224,9 @@ def create_product(
             )
         )
     db.flush()
+
+    if not payload.variants:
+        _ensure_default_variant(db, product)
 
     for img in payload.images:
         db.add(
@@ -241,7 +276,8 @@ def update_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     update_data = payload.model_dump(exclude_unset=True)
-    if "variants" in update_data:
+    replaced_variants = "variants" in update_data
+    if replaced_variants:
         db.execute(
             delete(ProductVariant).where(ProductVariant.product_id == product_id)
         )
@@ -262,6 +298,12 @@ def update_product(
 
     for field, value in update_data.items():
         setattr(product, field, value)
+
+    # Keep the single variant's price aligned with the product price so the
+    # inventory screen and the product screen always agree.
+    if "base_price" in update_data and not replaced_variants:
+        _ensure_default_variant(db, product)
+
     db.commit()
     db.refresh(product)
     return _to_product_read(db, product)

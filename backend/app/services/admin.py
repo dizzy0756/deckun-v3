@@ -12,6 +12,7 @@ from app.models import (
     Setting,
     User,
 )
+from app.models.enums import ProductStatus
 from app.models.enums import OrderStatus
 from app.schemas import SettingRead, UserRead
 from app.services.orders import OrderService
@@ -142,6 +143,7 @@ class AdminService:
             )
             .join(Product, ProductVariant.product_id == Product.id)
             .where(ProductVariant.is_active.is_(True))
+            .where(Product.status != ProductStatus.archived)
         )
         if low_stock_only:
             stmt = stmt.where(ProductVariant.stock <= threshold)
