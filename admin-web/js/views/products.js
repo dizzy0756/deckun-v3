@@ -21,42 +21,69 @@ async function renderProductList() {
         <h2>Products</h2>
         <p>Manage your catalogue</p>
       </div>
-      <div class="section-actions">
+      <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:1rem;">
         <a href="#products/edit/new" class="btn btn-primary">+ Add Product</a>
+        <button class="filter-chip active" id="chip-catalog">Catalog</button>
+        <button class="filter-chip" id="chip-archived">Archived</button>
+        <span id="products-count" style="color:var(--color-text-muted);font-size:0.875rem;"></span>
       </div>
       <div class="product-grid" id="products-grid">
-        <li>Loading…</li>
+        <li class="loading">Loading...</li>
       </div>
     </section>
   `;
 
-  try {
-    const products = await api.get("/api/admin/products/?limit=100");
-    const grid = document.getElementById("products-grid");
+  const grid = document.getElementById("products-grid");
+  const countEl = document.getElementById("products-count");
+  const chipCatalog = document.getElementById("chip-catalog");
+  const chipArchived = document.getElementById("chip-archived");
 
-    if (!products || products.length === 0) {
-      grid.innerHTML = `<li class="empty-state">No products found.</li>`;
-      return;
+  const load = async (includeArchived) => {
+    grid.innerHTML = `<li class="loading">Loading...</li>`;
+    try {
+      const url = includeArchived
+        ? "/api/admin/products/?limit=100&include_archived=true"
+        : "/api/admin/products/?limit=100";
+      const products = await api.get(url);
+
+      countEl.textContent = `${products.length} product${products.length === 1 ? "" : "s"}`;
+
+      if (!products || products.length === 0) {
+        grid.innerHTML = `<li class="empty-state">No products found.</li>`;
+        return;
+      }
+
+      grid.innerHTML = products.map((p) => `
+        <li class="product-card">
+          <a href="#products/${p.id}" class="product-card-link">
+            <div class="product-image">
+              <img src="${escapeHtml(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop')}" alt="${escapeHtml(p.name)}" loading="lazy" />
+            </div>
+            <div class="product-info">
+              <div class="product-name">${escapeHtml(p.name)}</div>
+              <div class="product-price">${rupee(p.base_price || p.price || 0)}</div>
+            </div>
+          </a>
+          <a href="#products/edit/${p.id}" class="btn btn-secondary btn-sm">Edit</a>
+        </li>
+      `).join("");
+    } catch (err) {
+      grid.innerHTML = `<li class="error-text">Failed to load products.</li>`;
     }
+  };
 
-    grid.innerHTML = products.map((p) => `
-      <li class="product-card">
-        <a href="#products/${p.id}" class="product-card-link">
-          <div class="product-image">
-            <img src="${escapeHtml(p.primary_image_url || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&h=600&fit=crop')}" alt="${escapeHtml(p.name)}" loading="lazy" />
-          </div>
-          <div class="product-info">
-            <div class="product-name">${escapeHtml(p.name)}</div>
-            <div class="product-price">${rupee(p.base_price || p.price || 0)}</div>
-          </div>
-        </a>
-        <a href="#products/edit/${p.id}" class="btn btn-secondary btn-sm">Edit</a>
-      </li>
-    `).join("");
-  } catch (err) {
-    document.getElementById("products-grid").innerHTML =
-      `<li class="error-text">Failed to load products.</li>`;
-  }
+  chipCatalog.onclick = () => {
+    chipCatalog.classList.add("active");
+    chipArchived.classList.remove("active");
+    load(false);
+  };
+  chipArchived.onclick = () => {
+    chipArchived.classList.add("active");
+    chipCatalog.classList.remove("active");
+    load(true);
+  };
+
+  load(false);
 }
 
 async function renderProductDetail(productId) {

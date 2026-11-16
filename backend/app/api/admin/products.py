@@ -11,10 +11,13 @@ from app.core.media import media_base_url
 from app.services.storage import save_media
 from app.models import (
     Category,
+    OrderItem,
     Product,
     ProductImage,
     ProductSpecification,
     ProductVariant,
+    PromotionProduct,
+    Review,
 )
 from app.models.enums import ProductStatus
 from app.schemas import (
@@ -128,6 +131,7 @@ def _to_product_read(db: Session, product: Product, request_base_url: str | None
 def list_products(
     request: Request,
     status: ProductStatus | None = None,
+    include_archived: bool = False,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -139,6 +143,8 @@ def list_products(
     )
     if status:
         stmt = stmt.where(Product.status == status)
+    elif not include_archived:
+        stmt = stmt.where(Product.status != ProductStatus.archived)
     stmt = stmt.offset(skip).limit(limit)
     results = db.execute(stmt).all()
     return [_to_product_read(db, p, media_base_url(request)) for p, _ in results]
@@ -262,13 +268,49 @@ def update_product(
 
 
 @router.delete("/{product_id}")
-def archive_product(product_id: UUID, db: Session = Depends(get_db)):
+def delete_product(product_id: UUID, db: Session = Depends(get_db)):
+    """Delete a product, or archive it when it is referenced by orders/reviews.
+
+    Reference checks are explicit because SQLite does not enforce foreign keys
+    by default (PostgreSQL does), so behaviour must match on both.
+    """
     product = db.get(Product, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    product.status = ProductStatus.archived
+
+    original_slug = product.slug
+
+    has_orders = db.scalar(
+        select(OrderItem.id).where(OrderItem.product_id == product_id).limit(1)
+    )
+    has_reviews = db.scalar(
+        select(Review.id).where(Review.product_id == product_id).limit(1)
+    )
+
+    if has_orders or has_reviews:
+        product.status = ProductStatus.archived
+        product.is_featured = False
+        product.slug = f"{original_slug}-archived-{uuid_lib.uuid4().hex[:8]}"
+        db.flush()
+        return {
+            "detail": "Product archived because it has orders or reviews",
+            "mode": "archived",
+        }
+
+    # Remove children explicitly so SQLite (FKs off) does not orphan rows.
+    db.execute(delete(ProductImage).where(ProductImage.product_id == product_id))
+    db.execute(
+        delete(ProductSpecification).where(
+            ProductSpecification.product_id == product_id
+        )
+    )
+    db.execute(delete(ProductVariant).where(ProductVariant.product_id == product_id))
+    db.execute(
+        delete(PromotionProduct).where(PromotionProduct.product_id == product_id)
+    )
+    db.delete(product)
     db.flush()
-    return {"detail": "Product archived"}
+    return {"detail": "Product deleted", "mode": "deleted"}
 
 
 @router.post("/{product_id}/images", response_model=ProductImageRead)
