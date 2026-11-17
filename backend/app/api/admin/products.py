@@ -10,6 +10,7 @@ from app.api.deps import get_db
 from app.core.media import media_base_url
 from app.services.storage import save_media
 from app.models import (
+    CartItem,
     Category,
     OrderItem,
     Product,
@@ -31,8 +32,11 @@ router = APIRouter()
 
 
 class VariantCreate(BaseModel):
+    id: UUID | None = None
     sku: str
     name: str
+    color: str | None = None
+    size: str | None = None
     price: int
     stock: int = 0
     is_active: bool = True
@@ -218,6 +222,8 @@ def create_product(
                 product_id=product.id,
                 sku=v.sku,
                 name=v.name,
+                color=v.color,
+                size=v.size,
                 price=v.price,
                 stock=v.stock,
                 is_active=v.is_active,
@@ -278,11 +284,39 @@ def update_product(
     update_data = payload.model_dump(exclude_unset=True)
     replaced_variants = "variants" in update_data
     if replaced_variants:
-        db.execute(
-            delete(ProductVariant).where(ProductVariant.product_id == product_id)
-        )
-        for v in update_data.pop("variants"):
-            db.add(ProductVariant(product_id=product_id, **v))
+        incoming = update_data.pop("variants")
+        existing = {
+            str(v.id): v
+            for v in db.scalars(
+                select(ProductVariant).where(ProductVariant.product_id == product_id)
+            ).all()
+        }
+        kept: set[str] = set()
+
+        for item in incoming:
+            variant_id = item.get("id")
+            fields = {k: v for k, v in item.items() if k != "id"}
+            if variant_id and str(variant_id) in existing:
+                obj = existing[str(variant_id)]
+                for key, value in fields.items():
+                    setattr(obj, key, value)
+                kept.add(str(variant_id))
+            else:
+                db.add(ProductVariant(product_id=product_id, **fields))
+
+        # Variants removed in the form: delete when unreferenced, else deactivate.
+        for key, obj in existing.items():
+            if key in kept:
+                continue
+            referenced = db.scalar(
+                select(CartItem.id).where(CartItem.variant_id == obj.id).limit(1)
+            ) or db.scalar(
+                select(OrderItem.id).where(OrderItem.variant_id == obj.id).limit(1)
+            )
+            if referenced:
+                obj.is_active = False
+            else:
+                db.delete(obj)
     if "images" in update_data:
         db.execute(delete(ProductImage).where(ProductImage.product_id == product_id))
         for img in update_data.pop("images"):
@@ -299,9 +333,9 @@ def update_product(
     for field, value in update_data.items():
         setattr(product, field, value)
 
-    # Keep the single variant's price aligned with the product price so the
-    # inventory screen and the product screen always agree.
-    if "base_price" in update_data and not replaced_variants:
+    # Non-variant products keep exactly one default variant (price synced) so
+    # inventory management keeps working; variant products keep what was sent.
+    if not product.has_variants:
         _ensure_default_variant(db, product)
 
     db.commit()

@@ -87,6 +87,15 @@ export async function renderProductDetail(app, slug) {
     // Limit to 3 images for swiper
     const galleryImages = images.slice(0, 3);
 
+    const variants = product.variants || [];
+    const useVariants = !!product.has_variants && variants.length > 0;
+    const variantColors = [...new Set(variants.map((v) => v.color).filter(Boolean))];
+    const variantSizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
+    const firstVariant = variants[0] || null;
+    const shownPrice = useVariants && firstVariant
+      ? firstVariant.price
+      : (product.base_price || product.price || 0);
+
     app.innerHTML = `
       <section class="section">
         <div class="container" style="max-width:1000px;">
@@ -113,12 +122,31 @@ export async function renderProductDetail(app, slug) {
 
           <div class="product-info">
             <h1 style="font-family:var(--font-heading); font-size:2rem; margin-bottom:0.5rem;">${escapeHtml(product.name)}</h1>
-            <div style="color:var(--color-primary); font-size:1.5rem; font-weight:600; margin-bottom:1rem;">${rupee(product.base_price || product.price || 0)}</div>
+            <div id="product-price" style="color:var(--color-primary); font-size:1.5rem; font-weight:600; margin-bottom:1rem;">${rupee(shownPrice)}</div>
             <p style="color:var(--color-text-secondary); margin-bottom:1.5rem;">${escapeHtml(product.description || '')}</p>
+
+            ${useVariants ? `
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1rem;">
+              ${variantColors.length ? `
+                <div style="flex:1; min-width:120px;">
+                  <label style="display:block; margin-bottom:0.35rem; font-weight:600; font-size:0.85rem;">Colour</label>
+                  <select id="variant-color" class="form-control" style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;">
+                    ${variantColors.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+                  </select>
+                </div>` : ''}
+              ${variantSizes.length ? `
+                <div style="flex:1; min-width:120px;">
+                  <label style="display:block; margin-bottom:0.35rem; font-weight:600; font-size:0.85rem;">Size</label>
+                  <select id="variant-size" class="form-control" style="width:100%; padding:0.6rem; border:1px solid var(--color-border); border-radius:var(--radius); font-family:inherit;">
+                    ${variantSizes.map((sz) => `<option value="${escapeHtml(sz)}">${escapeHtml(sz)}</option>`).join('')}
+                  </select>
+                </div>` : ''}
+            </div>` : ''}
+
             <div style="margin-bottom:1rem;">
               <span class="badge badge-${product.status || 'active'}">${product.status || 'active'}</span>
               <span class="badge">${product.category_name || 'Uncategorized'}</span>
-              <span class="badge">${product.stock_quantity || 0} in stock</span>
+              <span class="badge" id="product-stock">${useVariants ? "Select options" : (product.stock_quantity || 0) + " in stock"}</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:0.75rem;">
               <button id="add-cart" class="btn btn-primary" style="width:100%;">Add to Cart</button>
@@ -169,17 +197,79 @@ export async function renderProductDetail(app, slug) {
       if (endX - startX > 50) updateGallery(currentIndex - 1);
     });
 
-    // Add to cart
+    // Variant selection
+    let selectedVariant = useVariants ? firstVariant : null;
     const addCartBtn = app.querySelector('#add-cart');
+
+    if (useVariants) {
+      const colorSelect = app.querySelector('#variant-color');
+      const sizeSelect = app.querySelector('#variant-size');
+      const priceEl = app.querySelector('#product-price');
+      const stockEl = app.querySelector('#product-stock');
+
+      const syncVariant = () => {
+        const color = colorSelect ? colorSelect.value : null;
+        const size = sizeSelect ? sizeSelect.value : null;
+        selectedVariant =
+          variants.find((v) => (!color || v.color === color) && (!size || v.size === size)) || null;
+
+        if (!selectedVariant) {
+          priceEl.textContent = 'Unavailable';
+          stockEl.textContent = 'Out of stock';
+          if (addCartBtn) addCartBtn.disabled = true;
+          return;
+        }
+
+        priceEl.textContent = rupee(selectedVariant.price);
+        const availability = selectedVariant.availability;
+        stockEl.textContent =
+          availability === 'out_of_stock'
+            ? 'Out of stock'
+            : availability === 'low_stock'
+              ? 'Low stock'
+              : 'In stock';
+        if (addCartBtn) addCartBtn.disabled = availability === 'out_of_stock';
+      };
+
+      colorSelect?.addEventListener('change', syncVariant);
+      sizeSelect?.addEventListener('change', syncVariant);
+      syncVariant();
+    }
+
+    // Add to cart (variant-aware)
     if (addCartBtn) {
       addCartBtn.onclick = () => {
+        if (useVariants && !selectedVariant) {
+          alert('Please choose an available option.');
+          return;
+        }
+
+        const price = selectedVariant ? selectedVariant.price : (product.price || product.base_price);
+        const variantSku = selectedVariant ? selectedVariant.sku : null;
+        const variantLabel = selectedVariant && selectedVariant.name && selectedVariant.name !== 'Default'
+          ? selectedVariant.name
+          : '';
+
         const cart = JSON.parse(localStorage.getItem('deckun_cart') || '[]');
-        const existing = cart.find(item => item.product_id === product.id && !item.variant_id);
+        const existing = cart.find(
+          (item) => item.product_id === product.id && (item.variant_sku || null) === variantSku
+        );
+
         if (existing) {
           existing.quantity += 1;
         } else {
-          cart.push({ product_id: product.id, slug: product.slug, name: product.name, price: product.price || product.base_price, image: product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : ''), quantity: 1 });
+          cart.push({
+            product_id: product.id,
+            slug: product.slug,
+            name: product.name,
+            price,
+            variant_sku: variantSku,
+            variant_label: variantLabel,
+            image: product.primary_image_url || (product.images && product.images[0] ? product.images[0].url : ''),
+            quantity: 1,
+          });
         }
+
         localStorage.setItem('deckun_cart', JSON.stringify(cart));
         document.dispatchEvent(new Event('cart-updated'));
         alert('Added to cart');

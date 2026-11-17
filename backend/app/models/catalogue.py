@@ -79,6 +79,8 @@ class ProductVariant(Base):
     )
     sku: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    color: Mapped[str | None] = mapped_column(String(50), default=None)
+    size: Mapped[str | None] = mapped_column(String(50), default=None)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     stock: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

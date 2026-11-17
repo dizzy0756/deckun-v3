@@ -220,6 +220,8 @@ class CatalogueService:
                 id=v.id,
                 sku=v.sku,
                 name=v.name,
+                color=v.color,
+                size=v.size,
                 price=v.price,
                 availability=self._compute_variant_availability(v),
             )

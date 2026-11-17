@@ -92,6 +92,8 @@ class VariantAvailabilityRead(BaseModel):
     id: UUID
     sku: str
     name: str
+    color: str | None = None
+    size: str | None = None
     price: int
     availability: Availability
 
