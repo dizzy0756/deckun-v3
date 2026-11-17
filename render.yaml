@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: deckun-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      # Generated once by Render; keep it secret.
+      - key: SECRET_KEY
+        generateValue: true
+      # Starter value so the first deploy boots on SQLite.
+      # Replace with your Neon pooled connection string in the dashboard.
+      - key: DATABASE_URL
+        value: sqlite:///deckun.db
