@@ -1,9 +1,11 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_admin, get_current_user, get_db
+from app.core.config import settings
 from app.core.security import create_admin_token, create_customer_token
 from app.models import User, AdminUser
 from app.schemas import (
@@ -19,6 +21,7 @@ from app.schemas import (
     UserRegister,
     UserUpdate,
 )
+from app.services import google_auth
 from app.services.auth import AuthService
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -49,6 +52,25 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
         )
     token = create_customer_token(user.id)
     return Token(access_token=token)
+
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
+@router.get("/google/config")
+def google_config():
+    enabled = google_auth.is_configured()
+    return {
+        "enabled": enabled,
+        "client_id": settings.GOOGLE_CLIENT_ID if enabled else None,
+    }
+
+
+@router.post("/google", response_model=Token)
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    user, _created = AuthService(db).google_login(payload.credential)
+    return Token(access_token=create_customer_token(user.id))
 
 
 @router.post("/admin/login", response_model=Token)

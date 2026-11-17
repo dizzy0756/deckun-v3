@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     SMTP_USE_TLS: bool = True
 
+    # --- Google Sign-In ---
+    GOOGLE_CLIENT_ID: str = ""
+
     # --- Razorpay ---
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""

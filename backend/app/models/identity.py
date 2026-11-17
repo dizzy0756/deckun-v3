@@ -12,7 +12,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    mobile_number: Mapped[str] = mapped_column(String(15), unique=True, nullable=False)
+    mobile_number: Mapped[str | None] = mapped_column(
+        String(15), unique=True, nullable=True, default=None
+    )
     email: Mapped[str | None] = mapped_column(String(255), unique=True, default=None)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -116,7 +116,7 @@ class OrderRead(BaseModel):
     order_number: str
     user_id: UUID
     user_full_name: str
-    user_mobile: str
+    user_mobile: str | None = None
     shipping_address: dict | None = None
     status: OrderStatus
     payment_status: PaymentStatus

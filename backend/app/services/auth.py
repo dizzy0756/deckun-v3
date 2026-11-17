@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -15,6 +15,7 @@ from app.core.security import (
 )
 from app.models import Address, AdminUser, Cart, PasswordReset, User
 from app.models.enums import OtpType
+from app.services import google_auth
 from app.services.email import send_email
 from app.schemas import (
     AddressCreate,
@@ -189,6 +190,30 @@ class AuthService:
         self.db.delete(addr)
         self.db.flush()
         return True
+
+    def google_login(self, credential: str) -> tuple[User, bool]:
+        """Sign in (or sign up) with a Google ID token. Returns (user, created)."""
+        claims = google_auth.verify_credential(credential)
+        email = str(claims["email"]).strip().lower()
+
+        user = self.db.scalar(
+            select(User).where(func.lower(User.email) == email)
+        )
+        if user:
+            if not user.is_active:
+                raise HTTPException(status_code=403, detail="Account is disabled")
+            return user, False
+
+        full_name = (claims.get("name") or email.split("@")[0]).strip()[:255]
+        user = User(
+            full_name=full_name,
+            email=email,
+            mobile_number=None,
+            password_hash=get_password_hash(secrets.token_urlsafe(32)),
+        )
+        self.db.add(user)
+        self.db.flush()
+        return user, True
 
     def request_password_reset(self, identifier: str) -> str | None:
         user = None

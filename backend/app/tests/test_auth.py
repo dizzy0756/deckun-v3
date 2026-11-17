@@ -144,3 +144,51 @@ class TestAddresses:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 200
+
+    def test_google_login_creates_account(self, client, db, monkeypatch):
+        from app.services import google_auth
+
+        monkeypatch.setattr(
+            google_auth,
+            "verify_credential",
+            lambda credential: {
+                "email": "google.user@example.com",
+                "name": "Google User",
+                "email_verified": True,
+                "sub": "google-123",
+            },
+        )
+
+        resp = client.post("/api/auth/google", json={"credential": "fake-token"})
+        assert resp.status_code == 200
+        token = resp.json()["access_token"]
+
+        me = client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+        assert me.status_code == 200
+        body = me.json()
+        assert body["email"] == "google.user@example.com"
+        assert body["full_name"] == "Google User"
+        assert body["mobile_number"] is None
+
+        resp2 = client.post("/api/auth/google", json={"credential": "fake-token"})
+        assert resp2.status_code == 200
+        me2 = client.get(
+            "/api/auth/me",
+            headers={"Authorization": f"Bearer {resp2.json()['access_token']}"},
+        )
+        assert me2.json()["id"] == body["id"]
+
+    def test_google_login_rejects_invalid_credential(self, client, db, monkeypatch):
+        from fastapi import HTTPException
+
+        from app.services import google_auth
+
+        def boom(credential):
+            raise HTTPException(status_code=401, detail="Invalid Google credential")
+
+        monkeypatch.setattr(google_auth, "verify_credential", boom)
+
+        resp = client.post("/api/auth/google", json={"credential": "bad"})
+        assert resp.status_code == 401

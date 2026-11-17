@@ -58,7 +58,7 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    mobile_number: str
+    mobile_number: str | None = None
     full_name: str
     email: str | None = None
     is_active: bool
