@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     SMTP_USE_TLS: bool = True
 
+    # --- First-boot bootstrap ---
+    ADMIN_EMAIL: str = "admin@deckun.in"
+    ADMIN_PASSWORD: str = "ChangeMe123!"
+
     # --- Google Sign-In ---
     GOOGLE_CLIENT_ID: str = ""
 
