@@ -14,7 +14,7 @@ services:
       # Generated once by Render; keep it secret.
       - key: SECRET_KEY
         generateValue: true
-      # Starter value so the first deploy boots on SQLite.
-      # Replace with your Neon pooled connection string in the dashboard.
+      # Set the Neon pooled connection string in the Render dashboard.
+      # sync: false keeps blueprint syncs from overwriting it.
       - key: DATABASE_URL
-        value: sqlite:///deckun.db
+        sync: false

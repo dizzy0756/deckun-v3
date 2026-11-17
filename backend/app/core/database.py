@@ -5,9 +5,17 @@ from app.core.config import settings
 
 
 def _normalize_database_url(url: str) -> str:
-    """Accept the common 'postgres://' alias used by some dashboards."""
+    """Normalize provider URLs for the psycopg2 driver we ship.
+
+    - postgres://            -> postgresql+psycopg2://
+    - postgresql://          -> postgresql+psycopg2://
+    Without the explicit driver SQLAlchemy may pick psycopg3, which is not
+    installed.
+    """
     if url.startswith("postgres://"):
-        return "postgresql://" + url[len("postgres://") :]
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg2://" + url[len("postgresql://") :]
     return url
 
 
