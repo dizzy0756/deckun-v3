@@ -716,14 +716,25 @@ button {
 /* ===== Home hero slider ===== */
 .hero-slider {
   position: relative;
+  overflow: hidden;
+}
+
+.hero-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.65s cubic-bezier(0.33, 1, 0.68, 1);
+  will-change: transform;
 }
 
 .hero-slide {
-  display: none;
+  flex: 0 0 100%;
+  min-width: 100%;
 }
 
-.hero-slide.active {
-  display: block;
+@media (prefers-reduced-motion: reduce) {
+  .hero-track {
+    transition: none;
+  }
 }
 
 /* Wholesale slide reads better as one full-width column */

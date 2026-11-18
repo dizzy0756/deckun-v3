@@ -80,6 +80,7 @@ export async function renderHome(app) {
 
   app.innerHTML = `
     <section class="hero-slider" id="hero-slider">
+      <div class="hero-track" id="hero-track">
       <div class="hero hero-slide active" data-slide="0">
         <div class="hero-inner container">
           <div class="hero-content">
@@ -116,6 +117,7 @@ export async function renderHome(app) {
         </div>
       </div>
 
+      </div>
       <button type="button" class="slide-nav prev" id="slide-prev" aria-label="Previous slide">&#8249;</button>
       <button type="button" class="slide-nav next" id="slide-next" aria-label="Next slide">&#8250;</button>
       <div class="slide-dots" id="slide-dots">
@@ -145,6 +147,7 @@ function initSlider(app) {
   const prev = app.querySelector("#slide-prev");
   const next = app.querySelector("#slide-next");
   const slider = app.querySelector("#hero-slider");
+  const track = app.querySelector("#hero-track");
   if (slides.length <= 1) return;
 
   let index = 0;
@@ -152,13 +155,14 @@ function initSlider(app) {
 
   const show = (i) => {
     index = ((i % slides.length) + slides.length) % slides.length;
+    if (track) track.style.transform = `translateX(-${index * 100}%)`;
     slides.forEach((s, si) => s.classList.toggle("active", si === index));
     dots.forEach((d, di) => d.classList.toggle("active", di === index));
   };
 
   const restart = () => {
     if (timer) clearInterval(timer);
-    timer = setInterval(() => show(index + 1), 7000);
+    timer = setInterval(() => show(index + 1), 6000);
   };
 
   prev?.addEventListener("click", () => { show(index - 1); restart(); });
